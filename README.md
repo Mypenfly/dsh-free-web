@@ -48,30 +48,39 @@ Two guards make a flaky pool usable:
 - **benching** — an engine that fails twice is skipped for 2 minutes (×2 per re-offence, capped at 1 hour), so a CAPTCHA engine costs one request, not one per query;
 - **coherence gate** — an engine whose rows mention none of the query terms is a decoy page, not a result set, and its bucket is dropped. This is what keeps Bing's Microsoft-365 page from ever reaching the model as "results".
 
-## Mount
+## Install
 
-See [docs/MOUNT.md](docs/MOUNT.md). Short version, in the profile patch that already carries your other rows:
+The package is a DSH bundle (`dsh.bundle.patch` → [`cordis.patch.yml`](cordis.patch.yml)), so
+an install is a dependency plus a selection — the patch rows come with it:
+
+```bash
+dsh plugin --profile desktop add link:/home/mypenfly/projects/dsh-plugins/free-web
+# then add "dsh-free-web" to dsh.profile.bundles in the profile's package.json,
+# or install the directory from Plugins → Add plugin and press Enable now
+```
+
+It then appears in **Plugins** with its own title, description, and icon, and its switch is
+the rollback: switched off, the row unmounts and the seam falls back to
+`searchProvider: deepseek-official` / `fetchProvider: http`.
+
+The bundle patch is two entries — insert the row, re-point `web`:
 
 ```yaml
 - insert:
     - id: free-web
-      name: /home/mypenfly/projects/dsh-plugins/free-web/src/index.mjs
+      name: dsh-free-web          # bare package name: the profile resolves it
       config:
         engines: [duckduckgo, yahoojp, so360, sogou, wikipedia]
-# point the seam at the ids the plugin registers
 - id: web
   config:
     searchProvider: free-search
     fetchProvider: free-fetch
 ```
 
-Without editing the patch, the same selection can come from the environment:
-
-```bash
-DSH_WEB_SEARCH_PROVIDER=free-search DSH_WEB_FETCH_PROVIDER=free-fetch dsh web
-```
-
-Rollback is the two rows above, deleted.
+Mounting by path instead (a `--patch` overlay, a profile that keeps plugins as file paths)
+is in [docs/MOUNT.md](docs/MOUNT.md); such a row is not listed on the Plugins page, which
+only manages packages. Without editing anything, the same selection can come from the
+environment: `DSH_WEB_SEARCH_PROVIDER=free-search DSH_WEB_FETCH_PROVIDER=free-fetch dsh web`.
 
 ## Verification
 
@@ -133,9 +142,14 @@ src/search/engines/*.mjs    one module per engine (buildUrl + extract + search)
 src/fetch/provider.mjs      SSRF policy, redirects, caps, content types
 src/fetch/reader.mjs        article extraction → Markdown
 src/util/*.mjs              http, html, url, dates, errors
+cordis.patch.yml            bundle patch: insert the row, re-point the `web` seam
+dsh-plugin.json             plugin manifest (display metadata, host facet)
+locale/{en,zh}.json         title + description shown in Plugins
+assets/icon.png             icon shown in Plugins
+mount.patch.yml             manual mount overlay (absolute path, no bundle)
 test/fixtures/              captured engine responses + one article page
 docs/ENGINES.md             per-engine recipes and probe results
-docs/MOUNT.md               mounting, verifying, rolling back
+docs/MOUNT.md               installing, verifying, rolling back
 ```
 
 ## License

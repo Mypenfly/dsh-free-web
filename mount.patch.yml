@@ -1,7 +1,12 @@
-# dsh-free-web mount block — append to the profile patch that already carries your rows
-# (~/.dsh/profiles/desktop/cordis.patch.yml for the desktop app), or pass as `dsh --patch mount.patch.yml`.
+# dsh-free-web — manual mount overlay (no bundle install).
 #
-# Rollback = delete these two entries. The seam then falls back to
+# The package itself is a bundle: `dsh.bundle.patch` points at ./cordis.patch.yml, so an
+# installed profile needs nothing from this file. This overlay is for setups that keep
+# plugins as file paths (a `--patch` overlay, an agent preset, a profile without the
+# package as a dependency): it mounts the module by absolute path, and the row is then
+# invisible to the Plugins page.
+#
+# Rollback = delete these two entries; the seam falls back to
 # `searchProvider: deepseek-official` / `fetchProvider: http` from @deepseek-ai/dsh-base.
 
 - insert:

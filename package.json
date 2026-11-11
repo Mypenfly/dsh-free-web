@@ -1,16 +1,23 @@
 {
   "name": "dsh-free-web",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Free, keyless providers for the DeepSeek Harness built-in web_search and web_fetch tools — registered into the ctx.web seam, with no prompt injection and no new tools",
+  "description": "Keyless providers for the built-in web_search and web_fetch tools: multi-engine search (RRF fusion, circuit breaker, decoy gate) and reader-mode fetching, registered into the ctx.web seam with no new tools and no prompt injection",
   "type": "module",
-  "license": "MIT",
+  "main": "./src/index.mjs",
   "exports": {
-    ".": "./src/index.mjs"
+    ".": "./src/index.mjs",
+    "./package.json": "./package.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./assets/icon.png"
   },
   "files": [
     "src",
-    "mount.patch.yml",
+    "cordis.patch.yml",
+    "dsh-plugin.json",
+    "locale",
+    "assets",
     "README.md",
     "docs"
   ],
@@ -20,6 +27,14 @@
     "measure": "node scripts/measure-wire.mjs"
   },
   "engines": {
-    "node": ">=22.19.0"
-  }
+    "node": ">=22.19.0 || >=24.0.0",
+    "dsh": ">=0.2.2-rc.1"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "icon": "./assets/icon.png",
+  "license": "MIT"
 }

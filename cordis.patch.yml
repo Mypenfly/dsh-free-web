@@ -1,0 +1,26 @@
+# dsh-free-web — bundle patch.
+#
+# A bundle patch is applied as a profile layer of its own, so this file is both
+# the install-time mount and the rollback point: switch the bundle off in
+# Plugins (or drop `dsh-free-web` from `dsh.profile.bundles`) and the seam falls
+# back to `searchProvider: deepseek-official` / `fetchProvider: http` from
+# @deepseek-ai/dsh-base.
+#
+# Two entries only:
+#   1. insert the plugin row (bare package name — the profile holds it as a
+#      dependency, so the Loader resolves `dsh-free-web`);
+#   2. re-point the base `web` row at the ids this plugin registers.
+
+- insert:
+    - id: free-web
+      name: dsh-free-web
+      config:
+        engines: [duckduckgo, yahoojp, so360, sogou, wikipedia]
+        # provenance: true      # prefix results with "Engines: …"
+        # engineTimeoutMs: 8000
+        # verbose: true         # one stderr line per registered provider
+
+- id: web
+  config:
+    searchProvider: free-search
+    fetchProvider: free-fetch

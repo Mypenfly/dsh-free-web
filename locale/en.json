@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Free web (keyless)",
+    "description": "Takes the built-in web_search / web_fetch tools over: keyless multi-engine search with fusion, and reader-mode fetches that return the article instead of the whole page. No new tools, no prompt changes."
+  }
+}
