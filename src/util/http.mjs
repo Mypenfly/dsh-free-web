@@ -1,18 +1,15 @@
 /**
- * HTTP access for the free providers, on the host's global `fetch`.
+ * HTTP access for the free providers.
  *
- * The host installs an undici dispatcher from its proxy policy before plugins
- * mount (`dsh-http-proxy`), so `fetch` here inherits the same proxy, bypass list,
- * and TLS settings as the shipped providers — a plugin-local HTTP stack would
- * silently diverge from the user's proxy configuration.
- *
- * Everything a provider needs beyond `fetch`'s defaults lives here: a browser-ish
- * header set (keyless engines reject obvious clients), a byte cap, per-request
- * timeouts, cancellation, and manual redirect following so the fetch provider can
- * validate every hop.
+ * The transport itself lives in `transport.mjs` (Node core, env-proxy aware, DNS
+ * pinned). This module is the provider-facing convenience layer on top of it: a
+ * browser-ish header set (keyless engines reject obvious clients), a byte cap,
+ * per-request timeouts, cancellation, and redirect following so the fetch provider
+ * can validate every hop while the search engines just get a page.
  */
 
 import { FreeWebError, abortedError, providerError } from './errors.mjs'
+import { describeTransportFailure, readCappedText, request } from './transport.mjs'
 
 /** Desktop Chrome UA; engines gate on a plausible browser string. */
 export const BROWSER_UA =
@@ -32,9 +29,10 @@ export function throwIfAborted(signal) {
   if (signal?.aborted === true) throw abortedError('web request aborted', signal.reason)
 }
 
-/** True for a `fetch` abort caused by the caller's signal or our timeout. */
+/** True for an abort caused by the caller's signal, our deadline, or a socket. */
 export function isAbortError(error) {
-  return error instanceof DOMException && error.name === 'AbortError'
+  if (error instanceof DOMException && error.name === 'AbortError') return true
+  return error instanceof Error && (error.name === 'AbortError' || error.code === 'ABORT_ERR')
 }
 
 /**
@@ -69,60 +67,23 @@ export function deadline(signal, timeoutMs) {
 }
 
 /**
- * Read a response body with a byte cap.
+ * True for the statuses a client follows.
  *
- * @param {Response} response fetch response
- * @param {number} maxBytes cap
- * @returns {Promise<{ text: string, truncated: boolean, bytes: number }>} decoded body
+ * @param {number} status response status
+ * @returns {boolean} true for 301/302/303/307/308
  */
-export async function readCappedText(response, maxBytes) {
-  if (response.body === null) return { text: '', truncated: false, bytes: 0 }
-  const reader = response.body.getReader()
-  const chunks = []
-  let bytes = 0
-  let truncated = false
-  for (;;) {
-    const { done, value } = await reader.read()
-    if (done) break
-    if (value === undefined) continue
-    bytes += value.byteLength
-    if (bytes > maxBytes) {
-      const room = Math.max(0, maxBytes - (bytes - value.byteLength))
-      if (room > 0) chunks.push(value.subarray(0, room))
-      truncated = true
-      await reader.cancel().catch(() => {})
-      break
-    }
-    chunks.push(value)
-  }
-  const buffer = Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)))
-  return { text: decodeWithCharset(buffer, response.headers.get('content-type')), truncated, bytes }
-}
-
-/**
- * Decode bytes using the charset in `content-type`, defaulting to UTF-8.
- *
- * @param {Buffer} buffer raw bytes
- * @param {string | null} contentType response content type
- * @returns {string} decoded text
- */
-export function decodeWithCharset(buffer, contentType) {
-  const match = /charset\s*=\s*"?([\w-]+)"?/i.exec(contentType ?? '')
-  const charset = match?.[1]?.toLowerCase()
-  if (charset === undefined || charset === 'utf-8' || charset === 'utf8') {
-    return buffer.toString('utf8')
-  }
-  try {
-    return new TextDecoder(charset).decode(buffer)
-  } catch {
-    return buffer.toString('utf8')
-  }
+export function isRedirect(status) {
+  return status === 301 || status === 302 || status === 303 || status === 307 || status === 308
 }
 
 /**
  * GET one URL as text with engine-friendly headers.
  *
- * @param {string} url absolute URL
+ * Redirects are followed here, one validated hop at a time, instead of inside the
+ * transport: the fetch provider does its own origin checks and only needs a single
+ * hop, while the engines expect the final page.
+ *
+ * @param {string | URL} url absolute URL
  * @param {object} [options]
  * @param {AbortSignal} [options.signal] caller cancellation
  * @param {number} [options.timeoutMs] request budget
@@ -130,9 +91,12 @@ export function decodeWithCharset(buffer, contentType) {
  * @param {Record<string, string>} [options.headers] extra headers
  * @param {string} [options.referer] Referer header
  * @param {'follow' | 'manual'} [options.redirect] redirect policy
+ * @param {number} [options.maxRedirects] hop cap for `follow`
  * @param {number} [options.maxBytes] response cap
+ * @param {boolean} [options.publicOnly] refuse non-public destinations
+ * @param {object} [options.proxy] proxy override (defaults to the environment)
  * @param {string} [options.label] name used in failure messages (engine id)
- * @returns {Promise<{ status: number, text: string, url: string, truncated: boolean, location?: string }>}
+ * @returns {Promise<{ status: number, text: string, url: string, truncated: boolean, cookies: string[], location?: string }>}
  */
 export async function getText(url, options = {}) {
   const {
@@ -142,52 +106,72 @@ export async function getText(url, options = {}) {
     headers = {},
     referer,
     redirect = 'follow',
+    maxRedirects = MAX_REDIRECTS,
     maxBytes = FETCH_MAX_BYTES,
+    publicOnly = false,
+    proxy,
     label = 'request',
   } = options
   throwIfAborted(signal)
   const budget = deadline(signal, timeoutMs)
   try {
-    const response = await fetch(url, {
-      method: 'GET',
-      redirect,
-      signal: budget.signal,
-      headers: {
-        'user-agent': BROWSER_UA,
-        accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'accept-language': acceptLanguage,
-        'cache-control': 'no-cache',
-        ...(referer === undefined ? {} : { referer }),
-        ...headers,
-      },
-    })
-    if (redirect === 'manual') {
-      budget.done()
+    let current = url instanceof URL ? url : new URL(url)
+    for (let hop = 0; ; hop += 1) {
+      const response = await request(current, {
+        method: 'GET',
+        signal: budget.signal,
+        publicOnly,
+        ...(proxy === undefined ? {} : { proxy }),
+        headers: {
+          'user-agent': BROWSER_UA,
+          accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'accept-language': acceptLanguage,
+          'cache-control': 'no-cache',
+          ...(referer === undefined ? {} : { referer }),
+          ...headers,
+        },
+      })
+      const location = response.headers.get('location')
+      if (redirect === 'manual') {
+        response.stream?.destroy()
+        return {
+          status: response.status,
+          text: '',
+          url: current.toString(),
+          truncated: false,
+          cookies: response.headers.getSetCookie(),
+          ...(location === null ? {} : { location: new URL(location, current).toString() }),
+        }
+      }
+      if (isRedirect(response.status) && location !== null) {
+        response.stream?.destroy()
+        if (hop >= maxRedirects) throw providerError(`${label} exceeded the maximum of ${maxRedirects} redirects`)
+        let next
+        try {
+          next = new URL(location, current)
+        } catch (error) {
+          throw providerError(`${label} redirect Location "${location}" is not a URL`, error)
+        }
+        if (next.protocol !== 'http:' && next.protocol !== 'https:') {
+          throw providerError(`${label} redirected to unsupported scheme "${next.protocol}"`)
+        }
+        current = next
+        continue
+      }
+      const { text, truncated } = await readCappedText(response, maxBytes)
       return {
         status: response.status,
-        text: '',
-        url: response.url === '' ? url : response.url,
-        truncated: false,
-        ...(response.headers.get('location') === null
-          ? {}
-          : { location: new URL(response.headers.get('location'), url).toString() }),
+        text,
+        url: current.toString(),
+        truncated,
+        cookies: response.headers.getSetCookie(),
       }
     }
-    const { text, truncated } = await readCappedText(response, maxBytes)
-    budget.done()
-    return {
-      status: response.status,
-      text,
-      url: response.url === '' ? url : response.url,
-      truncated,
-      cookies: response.headers.getSetCookie(),
-    }
   } catch (error) {
-    if (budget.timedOut()) {
-      throw providerError(`${label} timed out after ${timeoutMs}ms`, error)
-    }
+    if (budget.timedOut()) throw providerError(`${label} timed out after ${timeoutMs}ms`, error)
     if (signal?.aborted === true || isAbortError(error)) throw abortedError(`${label} aborted`, error)
-    throw providerError(`${label} request failed: ${describeFetchFailure(error)}`, error)
+    if (error instanceof FreeWebError) throw error
+    throw providerError(`${label} request failed: ${describeTransportFailure(error)}`, error)
   } finally {
     budget.done()
   }
@@ -233,24 +217,14 @@ export function sleep(ms) {
 }
 
 /**
- * Render a fetch failure with its cause chain, which is where undici puts the
- * actual network reason (`ECONNREFUSED`, `ENOTFOUND`, proxy refusal).
+ * Render a fetch failure with its cause chain, which is where Node puts the
+ * actual network reason (`ECONNREFUSED`, `ENOTFOUND`, a proxy refusal).
  *
  * @param {unknown} error thrown value
  * @returns {string} one-line description
  */
 export function describeFetchFailure(error) {
-  const parts = []
-  let current = error
-  const seen = new Set()
-  while (current instanceof Error && !seen.has(current)) {
-    seen.add(current)
-    parts.push(current.message)
-    const code = /** @type {{ code?: unknown }} */ (current).code
-    if (typeof code === 'string' && !parts.at(-1).includes(code)) parts[parts.length - 1] += ` (${code})`
-    current = current.cause
-  }
-  return parts.filter((part) => part.length > 0).join(': ') || String(error)
+  return describeTransportFailure(error)
 }
 
 /**
@@ -282,4 +256,4 @@ export async function abortable(promise, signal, label) {
   })
 }
 
-export { FreeWebError }
+export { FreeWebError, request, readCappedText }

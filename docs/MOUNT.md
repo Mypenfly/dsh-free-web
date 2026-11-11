@@ -159,3 +159,40 @@ package installed, either switch the bundle off, or disable only the row:
 - id: free-web
   disabled: true
 ```
+
+## 8. Networking (proxies, DNS, encodings)
+
+The plugin brings its own HTTP client on Node core, so it does not inherit the host's undici
+dispatcher. It reads the same environment variables instead, which means a proxy configured for
+the host works here without extra configuration:
+
+| variable | used for |
+|---|---|
+| `https_proxy` | `https:` destinations (CONNECT tunnel + TLS) |
+| `http_proxy` | `http:` destinations (absolute-form request line) |
+| `all_proxy` | fallback for both, when the scheme-specific one is unset |
+| `no_proxy` | destinations that must go direct |
+
+Lowercase wins over uppercase, as in curl. `no_proxy` entries may be `*`, an exact host, a
+domain suffix (`.example.com` or `example.com`, which also covers subdomains), `host:port`,
+a bracketed IPv6 literal, or an IPv4 CIDR block. A `socks*://` proxy variable is **not**
+implemented: the request goes direct rather than pretending to use it.
+
+What the transport does on its own:
+
+- direct connections resolve the name once, refuse the request when any answer is non-public
+  (`WEB_BLOCKED_URL`), and pin the verified addresses into the socket — no rebinding window;
+- proxied fetches still run that public-destination check before opening the tunnel, even though
+  the proxy resolves the name;
+- `gzip`, `deflate` (zlib-wrapped and raw) and `br` bodies are decoded in-process, with the
+  decoded size capped;
+- one hop per call: the fetch provider validates origin and address on every redirect hop.
+
+To see which path a request took, run the providers directly — a proxied run fails loudly with
+`ECONNREFUSED`/`timed out` when the proxy is down, while a direct run works only for hosts in
+`no_proxy`:
+
+```bash
+node scripts/smoke.mjs                     # live search + fetch, current environment
+node --test "test/*.test.mjs"              # proxy rules, decoding, caps, cancellation, PIN
+```

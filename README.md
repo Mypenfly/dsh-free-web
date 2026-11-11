@@ -85,22 +85,32 @@ environment: `DSH_WEB_SEARCH_PROVIDER=free-search DSH_WEB_FETCH_PROVIDER=free-fe
 ## Verification
 
 ```bash
-node --test "test/*.test.mjs"     # 29 offline tests over captured fixtures
+node --test "test/*.test.mjs"     # 48 offline tests: fixtures, local servers, proxy rules
 node scripts/smoke.mjs            # live: one search + two fetches
+node scripts/probe-live-tool.mjs web_search "rust ownership"   # live: the host kernel calls the tool
+node scripts/probe-live-tool.mjs web_fetch https://example.com/
 node scripts/measure-wire.mjs baseline
 node scripts/measure-wire.mjs withplugin --with-plugin   # compare system prompt + tool list
 ```
 
-Inside a running DSH the seam path was exercised end to end (probe plugin calling `ctx.web` after mount):
+`probe-live-tool.mjs` streams a scripted `tool_use` from a mock Messages endpoint, so the real
+DSH kernel executes the real built-in tool — no paid call, and the tool result is captured in
+the follow-up request:
 
 ```
-PROBE search sources=5 content="Engines: yahoojp 9 · sogou 9 · wikipedia 5 · skipped: so360 unavailable"
-PROBE search first=https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html
-PROBE fetch status=200 chars=156 kind=text
+tool: web_search({"queries":["rust ownership"]})
+result: 2201 chars
+Engines: yahoojp 9 · so360 6 · sogou 10 · wikipedia 8
+
+Sources:
+- [Understanding Ownership - The Rust Programming Language](https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html) — Ownership is Rust's most unique feature …
+
+tool: web_fetch({"url":"https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html"})
+result: 564 chars
+# Understanding Ownership  … article body, no navigation
 ```
 
-And in the live desktop session, after mounting the row, the built-in tool itself answered with the
-same provenance line:
+And in the live desktop session, the same built-in tools answered through the mounted bundle:
 
 ```
 web_search { queries: ["dsh-free-web keyless search provider"] }
@@ -126,8 +136,21 @@ web_fetch { url: "https://doc.rust-lang.org/book/ch04-00-understanding-ownership
 
 ## Limits worth knowing
 
-- **Proxy.** The providers use the host's global `fetch`, so they inherit DSH's proxy policy automatically. A machine that needs a proxy but has none configured will find every engine "unavailable".
-- **DNS pinning.** The shipped fetch provider resolves and pins addresses before connecting. A plugin cannot (that needs the undici dispatcher's `lookup`), so this fetch validates the URL and pre-resolves the hostname instead — enough to refuse `localhost`, private, link-local, and CGNAT destinations, not a rebinding race.
+- **Transport.** HTTP is the plugin's own stack on Node core (`node:http`, `node:https`,
+  `node:tls`, `node:zlib`) — no global `fetch`, no client library, no undici dispatcher. Proxy
+  settings are read from the environment with the same precedence curl uses: scheme-specific
+  `http_proxy` / `https_proxy`, `all_proxy` as fallback, `no_proxy` for `*`, exact hosts, domain
+  suffixes, `host:port`, bracketed IPv6 and IPv4 CIDR. `https:` targets go through `CONNECT` +
+  TLS, `http:` targets through an absolute-form request line. A `socks*://` value is not
+  implemented and therefore means "direct", not a silent half-proxy.
+- **DNS pinning.** A direct connection resolves once, refuses the request if *any* answer is
+  non-public, and pins the verified set into the socket, so the name cannot resolve differently
+  between check and connect. Behind a proxy the destination is resolved by the proxy, but the
+  same public-only check still runs before the tunnel opens.
+- **Encodings.** `gzip`, `deflate` (zlib-wrapped and raw) and `br` are decoded in-process. The
+  decoded size is capped, so a small compressed body cannot expand into a bomb.
+- **Redirects.** The transport is one hop per call; the fetch provider validates origin and
+  address on every hop, and the engines follow up to 6 hops.
 - **Selectors are rented, not owned.** Every engine is a public page whose markup can change; the tests run against captured fixtures, so a break shows up as a failing test, and the breaker keeps the rest of the pool answering.
 - **No browser rendering.** JavaScript-only pages and proof-of-work walls (Brave) are out of reach; there is no Playwright here.
 
@@ -141,12 +164,18 @@ src/search/gates.mjs        wall markers + coherence/decoy gate
 src/search/engines/*.mjs    one module per engine (buildUrl + extract + search)
 src/fetch/provider.mjs      SSRF policy, redirects, caps, content types
 src/fetch/reader.mjs        article extraction → Markdown
+src/util/transport.mjs      own HTTP transport: direct + proxy, one hop per call, decoding
+src/util/proxy.mjs          proxy variables and no_proxy matching
+src/util/address.mjs        non-public destination policy (shared by transport and provider)
 src/util/*.mjs              http, html, url, dates, errors
 cordis.patch.yml            bundle patch: insert the row, re-point the `web` seam
 dsh-plugin.json             plugin manifest (display metadata, host facet)
 locale/{en,zh}.json         title + description shown in Plugins
 assets/icon.png             icon shown in Plugins
 mount.patch.yml             manual mount overlay (absolute path, no bundle)
+scripts/smoke.mjs           live search + fetch through the real providers
+scripts/probe-live-tool.mjs the host kernel calling a real built-in tool, scripted by a mock LLM
+scripts/measure-wire.mjs    capture the model-visible prompt and tool list
 test/fixtures/              captured engine responses + one article page
 docs/ENGINES.md             per-engine recipes and probe results
 docs/MOUNT.md               installing, verifying, rolling back

@@ -20,3 +20,10 @@
 - cost: 无法做 DNS pinning（需要 undici dispatcher 的 lookup），改用请求前 DNS 预检；已知残余 DNS rebinding 风险在 README 里写明。
 - rollback: 把 `web.fetchProvider` 改回 `http`。
 - supersedes: none
+
+## d004 (2026-11-11) — 传输层自建（Node core），不再借宿主全局 fetch
+- decision: 新增 `src/util/transport.mjs` + `proxy.mjs` + `address.mjs`，用 `node:http`/`node:https`/`node:tls`/`node:zlib` 直连或经 env 代理；直连做 DNS 预检并把验证过的地址 pin 进 socket；每次调用只走一跳，重定向留给调用方逐跳校验。
+- why: 宿主 `fetch` 背后的 undici dispatcher 不是可导入的 seam（插件只能拿模块，拿不到 dispatcher），既拿不到 `lookup` 也就无法闭合 rebinding 窗口；而本机必须经 `127.0.0.1:7897` 才能出网，自建传输必须自己实现 env 代理（CONNECT + TLS、absolute-form）与 gzip/deflate/br 解码。
+- cost: 多维护一套 HTTP 客户端（约 500 行 + 18 个离线用例）；`socks*://` 不实现，配了也走直连；TLS-over-tunnel 无本地证书可测，靠活网 smoke 覆盖。
+- rollback: 把 `fetch/provider.mjs` 与 `util/http.mjs` 的 `request` 调用换回全局 `fetch`，删三个 util 文件（工具/schema/提示词都不变）。
+- supersedes: d003 的 cost 段（“无法 DNS pinning”）——d003 的安全策略本身仍 active

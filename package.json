@@ -24,6 +24,7 @@
   "scripts": {
     "test": "node --test \"test/*.test.mjs\"",
     "smoke": "node scripts/smoke.mjs",
+    "probe": "node scripts/probe-live-tool.mjs",
     "measure": "node scripts/measure-wire.mjs"
   },
   "engines": {
