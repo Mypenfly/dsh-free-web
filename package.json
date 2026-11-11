@@ -1,0 +1,25 @@
+{
+  "name": "dsh-free-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Free, keyless providers for the DeepSeek Harness built-in web_search and web_fetch tools — registered into the ctx.web seam, with no prompt injection and no new tools",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "files": [
+    "src",
+    "mount.patch.yml",
+    "README.md",
+    "docs"
+  ],
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\"",
+    "smoke": "node scripts/smoke.mjs",
+    "measure": "node scripts/measure-wire.mjs"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  }
+}
