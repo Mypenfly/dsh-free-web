@@ -1,6 +1,6 @@
 # TASK
 
-next: u004 — 挂载到 desktop profile（备份 + 两行 patch），活会话里用 web_search/web_fetch 验证走 free provider，并复核提示词/工具面不变
+next: u005（可选增强）— 把引擎选择/自检暴露到 Web search 设置页或加 `/free-web doctor`；不写则视为收尾
 goal: 让 DSH 内置 `web_search` / `web_fetch` 走免费的本地实现在不改系统提示词、不新增工具的前提下接管（走 `ctx.web` 官方 provider seam）
 acceptance:
   - `web_search` / `web_fetch` 工具名、schema、模型可见面完全不变；系统提示词字符数不变；工具数量不变
@@ -17,6 +17,7 @@ done:
   - u001 侦察（seam/注册点/引擎可达性）
   - u002 免费 search provider（6 引擎 + RRF + 熔断 + 诱饵门），28 测试全绿
   - u003 fetch provider（同安全策略 + 正文提取）
+  - u004 挂载桌面 profile + 活会话验证（web_search 返回 Engines 行、web_fetch 返回正文）+ 加 DDG 引擎
 pointers:
   - seam: `@deepseek-ai/dsh-web` → `ctx.web.registerSearchProvider/registerFetchProvider`，id 唯一，selection: `web.searchProvider` / `web.fetchProvider`
   - 官方注册点: `dsh-base/cordis.patch.yml` L473-500（web-search-deepseek / web-deepseek-api / web-fetch-http / tool-web）

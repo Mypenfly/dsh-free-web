@@ -9,12 +9,13 @@ import * as yahoojp from './yahoojp.mjs'
 import * as so360 from './so360.mjs'
 import * as brave from './brave.mjs'
 import * as sogou from './sogou.mjs'
+import * as duckduckgo from './duckduckgo.mjs'
 import * as baidu from './baidu.mjs'
 import * as wikipedia from './wikipedia.mjs'
 
 /** Every engine this plugin ships, keyed by id. */
 export const ENGINES = new Map(
-  [yahoojp, so360, sogou, wikipedia, bing, brave, baidu].map((engine) => [engine.id, engine]),
+  [yahoojp, so360, sogou, wikipedia, duckduckgo, bing, brave, baidu].map((engine) => [engine.id, engine]),
 )
 
 /**
@@ -22,9 +23,11 @@ export const ENGINES = new Map(
  * destinations on repeated use. Everything left out is one config line away and
  * documented in README.md:
  *  - `bing`, `brave` — decoy page / proof-of-work 429 from this IP;
- *  - `baidu` — CAPTCHA-prone and its direct URLs exist only on some days.
+ *  - `baidu` — CAPTCHA-prone, and its direct URLs exist only on some days.
+ * `duckduckgo` is in the pool but gated: it only answers when the request carries a
+ * referer, so its failures are expected and benched like any other engine.
  */
-export const DEFAULT_ENGINES = ['yahoojp', 'so360', 'sogou', 'wikipedia']
+export const DEFAULT_ENGINES = ['yahoojp', 'so360', 'sogou', 'wikipedia', 'duckduckgo']
 
 /**
  * Resolve a configured engine list, reporting unknown ids instead of failing the

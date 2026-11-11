@@ -1,6 +1,6 @@
-import { resolveEngines } from './src/search/engines/index.mjs'
-import { FreeSearchProvider } from './src/search/provider.mjs'
-import { FreeFetchProvider } from './src/fetch/provider.mjs'
+import { resolveEngines } from '../src/search/engines/index.mjs'
+import { FreeSearchProvider } from '../src/search/provider.mjs'
+import { FreeFetchProvider } from '../src/fetch/provider.mjs'
 
 const engines = resolveEngines(['yahoojp','so360','sogou','wikipedia','bing'], (m)=>console.log('WARN',m))
 const provider = new FreeSearchProvider({ id:'free-search', engines, timeoutMs:9000, acceptLanguage:'en-US,en;q=0.9,zh-CN;q=0.8,ja;q=0.7', log:(m)=>console.log('LOG',m) })

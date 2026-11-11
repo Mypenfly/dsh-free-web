@@ -36,11 +36,12 @@ Live probes from a consumer IP behind an HTTP proxy, 2026-11-11 (details and per
 | `so360` | **works** | 360 Search; destination in `data-mdurl`; CAPTCHA-prone under load |
 | `sogou` | **works** | destination in `data-url`; needs a session cookie (minted once per process) |
 | `wikipedia` | **works** | MediaWiki JSON API; encyclopedic queries only, never benched |
+| `duckduckgo` | **works** | `html.duckduckgo.com` only answers with a `referer` — without it the same URL is a 202 CAPTCHA. `uddg=` links unwrap to real destinations |
 | `bing` | decoy page | 200 + perfectly shaped rows that are all off-topic; the coherence gate drops them |
 | `brave` | HTTP 429 | proof-of-work interstitial from a shared proxy IP |
 | `baidu` | CAPTCHA | `百度安全验证` most days; direct URLs are behind an opaque token |
 
-Default pool: `yahoojp`, `so360`, `sogou`, `wikipedia`. The rest are one config line away.
+Default pool (`src/search/engines/index.mjs`): `yahoojp`, `so360`, `sogou`, `wikipedia`, `duckduckgo`. The mounted desktop row lists the same five. The rest are one config line away.
 
 Two guards make a flaky pool usable:
 
@@ -56,7 +57,7 @@ See [docs/MOUNT.md](docs/MOUNT.md). Short version, in the profile patch that alr
     - id: free-web
       name: /home/mypenfly/projects/dsh-plugins/free-web/src/index.mjs
       config:
-        engines: [yahoojp, so360, sogou, wikipedia]
+        engines: [duckduckgo, yahoojp, so360, sogou, wikipedia]
 # point the seam at the ids the plugin registers
 - id: web
   config:
@@ -75,7 +76,7 @@ Rollback is the two rows above, deleted.
 ## Verification
 
 ```bash
-node --test "test/*.test.mjs"     # 28 offline tests over captured fixtures
+node --test "test/*.test.mjs"     # 29 offline tests over captured fixtures
 node scripts/smoke.mjs            # live: one search + two fetches
 node scripts/measure-wire.mjs baseline
 node scripts/measure-wire.mjs withplugin --with-plugin   # compare system prompt + tool list
@@ -89,11 +90,21 @@ PROBE search first=https://doc.rust-lang.org/book/ch04-00-understanding-ownershi
 PROBE fetch status=200 chars=156 kind=text
 ```
 
+And in the live desktop session, after mounting the row, the built-in tool itself answered with the
+same provenance line:
+
+```
+web_search { queries: ["dsh-free-web keyless search provider"] }
+→ Engines: yahoojp 9 · sogou 11 · duckduckgo 10 · skipped: so360 unavailable, wikipedia unavailable
+web_fetch { url: "https://doc.rust-lang.org/book/ch04-00-understanding-ownership.html" }
+→ "# Understanding Ownership" … article body, no navigation
+```
+
 ## Configuration
 
 | key | default | meaning |
 |---|---|---|
-| `engines` | `[yahoojp, so360, sogou, wikipedia]` | engine ids, in preference order (order breaks ties in fusion) |
+| `engines` | `[yahoojp, so360, sogou, wikipedia, duckduckgo]` | engine ids, in preference order (order breaks ties in fusion) |
 | `searchProvider` | `free-search` | id the search provider registers under |
 | `fetchProvider` | `free-fetch` | id the fetch provider registers under |
 | `engineTimeoutMs` | `8000` | per-engine budget inside one search |

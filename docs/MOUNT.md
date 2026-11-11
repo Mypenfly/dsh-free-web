@@ -17,7 +17,7 @@ Append to the profile patch that already carries your rows — for the desktop a
     - id: free-web
       name: /home/mypenfly/projects/dsh-plugins/free-web/src/index.mjs
       config:
-        engines: [yahoojp, so360, sogou, wikipedia]
+        engines: [duckduckgo, yahoojp, so360, sogou, wikipedia]
 # `web` comes from @deepseek-ai/dsh-base and declares
 #   searchProvider: deepseek-official, fetchProvider: http
 # this patch re-points it. Same shape as the shipped settings page writes.

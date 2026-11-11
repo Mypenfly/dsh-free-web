@@ -13,6 +13,7 @@ import * as so360 from '../src/search/engines/so360.mjs'
 import * as bing from '../src/search/engines/bing.mjs'
 import * as wikipedia from '../src/search/engines/wikipedia.mjs'
 import * as sogou from '../src/search/engines/sogou.mjs'
+import * as duckduckgo from '../src/search/engines/duckduckgo.mjs'
 import * as baidu from '../src/search/engines/baidu.mjs'
 import { coherenceScore, detectGate, isDecoy } from '../src/search/gates.mjs'
 import { parseDate } from '../src/util/dates.mjs'
@@ -94,6 +95,16 @@ test('sogou: data-url carries the destination and token redirects are dropped', 
   assert.equal(sources[0].url, 'https://example.cn/rust-ownership')
   // The third span of the cite line is a real date; the truncated display URL is not.
   assert.equal(sources[0].publishedAt, '2024-03-05')
+})
+
+test('duckduckgo: uddg redirects unwrap to the destination', () => {
+  const sources = duckduckgo.extract(fixture('duckduckgo-result.html'), 'https://html.duckduckgo.com/html/?q=x')
+  assert.ok(sources.length >= 5, `expected results, got ${sources.length}`)
+  for (const source of sources) {
+    assert.doesNotMatch(source.url, /duckduckgo\.com/, 'the redirector is never the citation')
+    assert.doesNotMatch(source.url, /%2F|%3A/i, 'the target is decoded exactly once')
+  }
+  assert.ok(sources[0].snippet.length > 20)
 })
 
 test('sogou: the anti-captcha page is a gate, not an empty result', () => {

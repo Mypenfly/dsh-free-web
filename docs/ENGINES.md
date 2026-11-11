@@ -78,6 +78,23 @@ lang = /CJK/ in q ? 'zh' : 'en'
 - Never benched: it answers 200 JSON reliably. It returns rows for encyclopedic queries only,
   which is the right behaviour for a supplementary engine.
 
+## duckduckgo — DuckDuckGo HTML (works, referer-gated)
+
+```js
+url = 'https://html.duckduckgo.com/html/?q=' + enc(q) + (fresh ? '&df=' + {day:'d',week:'w',month:'m',year:'y'}[fresh] : '')
+headers: { referer: 'https://duckduckgo.com/' }
+```
+
+- **The referer is the whole engine.** Without it the endpoint answers `202` with
+  `anomaly-modal` (the well-known "DDG is blocked" result); with it, the same URL is a normal
+  200 page. `lite.duckduckgo.com` stays blocked even with the referer, so only `html.` is used.
+- Blocks: `<h2 class="result__title">`; anchor `a.result__a`; snippet `a.result__snippet`.
+- URL: `//duckduckgo.com/l/?uddg=<percent-encoded>` — the query parser decodes that value *once*,
+  so it must not be decoded again or `…/wiki/C%2B%2B` becomes a URL that 404s.
+
+Probe: 200, 33 KB, 10 result blocks, real `doc.rust-lang.org` / `w3schools` / `rust-book`
+targets, ~1.0 s.
+
 ## bing — Bing (decoy from this egress)
 
 ```js
@@ -128,7 +145,7 @@ url = 'https://www.baidu.com/s?wd=' + enc(q) + '&rn=' + clamp(n,10,50)
 
 | source | why not |
 |---|---|
-| DuckDuckGo HTML/Lite | 202 + `anomaly-modal` CAPTCHA on both endpoints; the Instant-Answer API is not a web index (`Results: []`) |
+| DuckDuckGo Lite | 202 + `anomaly-modal` even with a referer; only the `html.` endpoint is usable (see above). Its Instant-Answer API is not a web index (`Results: []`) |
 | Google News RSS | works, but every `<link>` is an opaque `news.google.com/rss/articles/CBM…` blob — uncitable and undedupable without replaying Google's RPC |
 | Public SearXNG instances | every probed instance refuses `format=json` (429, Anubis gate, captcha, HTML-only). Support a *self-hosted* instance if you have one |
 | Mojeek / Startpage / yahoo.com | TLS failure / captcha / HTTP 500 |

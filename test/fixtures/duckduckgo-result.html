@@ -1,0 +1,626 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<!--[if IE 6]><html class="ie6" xmlns="http://www.w3.org/1999/xhtml"><![endif]-->
+<!--[if IE 7]><html class="lt-ie8 lt-ie9" xmlns="http://www.w3.org/1999/xhtml"><![endif]-->
+<!--[if IE 8]><html class="lt-ie9" xmlns="http://www.w3.org/1999/xhtml"><![endif]-->
+<!--[if gt IE 8]><!--><html xmlns="http://www.w3.org/1999/xhtml"><!--<![endif]-->
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=1" />
+  <meta name="referrer" content="origin" />
+  <meta name="HandheldFriendly" content="true" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>rust ownership at DuckDuckGo</title>
+  <link title="DuckDuckGo (HTML)" type="application/opensearchdescription+xml" rel="search" href="//duckduckgo.com/opensearch_html_v2.xml" />
+  <link href="//duckduckgo.com/favicon.ico" rel="shortcut icon" />
+  <link rel="icon" href="//duckduckgo.com/favicon.ico" type="image/x-icon" />
+  <link id="icon60" rel="apple-touch-icon" href="//duckduckgo.com/assets/icons/meta/DDG-iOS-icon_60x60.png?v=2"/>
+  <link id="icon76" rel="apple-touch-icon" sizes="76x76" href="//duckduckgo.com/assets/icons/meta/DDG-iOS-icon_76x76.png?v=2"/>
+  <link id="icon120" rel="apple-touch-icon" sizes="120x120" href="//duckduckgo.com/assets/icons/meta/DDG-iOS-icon_120x120.png?v=2"/>
+  <link id="icon152" rel="apple-touch-icon" sizes="152x152" href="//duckduckgo.com/assets/icons/meta/DDG-iOS-icon_152x152.png?v=2"/>
+  <link rel="image_src" href="//duckduckgo.com/assets/icons/meta/DDG-icon_256x256.png">
+  <link rel="stylesheet" media="handheld, all" href="//duckduckgo.com/dist/h.12e359033b8c1146e5f7.css" type="text/css"/>
+</head>
+
+<body class="body--html">
+  <a name="top" id="top"></a>
+
+  <form action="/html/" method="post">
+    <input type="text" name="state_hidden" id="state_hidden" />
+  </form>
+
+  <div>
+    <div class="site-wrapper-border"></div>
+
+    <div id="header" class="header cw header--html">
+      <a title="DuckDuckGo" href="/html/" class="header__logo-wrap"></a>
+
+      <form name="x" class="header__form" action="/html/" method="post">
+        <div class="search search--header">
+          <input name="q" autocomplete="off" class="search__input" id="search_form_input_homepage" type="text" value="rust ownership" />
+          <input name="b" id="search_button_homepage" class="search__button search__button--html" value="" title="Search" alt="Search" type="submit" />
+        </div>
+
+        
+        
+        
+        
+
+        <div class="frm__select">
+          <select name="kl">
+            
+              <option value="" >All Regions</option>
+            
+              <option value="ar-es" >Argentina</option>
+            
+              <option value="au-en" >Australia</option>
+            
+              <option value="at-de" >Austria</option>
+            
+              <option value="be-fr" >Belgium (fr)</option>
+            
+              <option value="be-nl" >Belgium (nl)</option>
+            
+              <option value="br-pt" >Brazil</option>
+            
+              <option value="bg-bg" >Bulgaria</option>
+            
+              <option value="ca-en" >Canada (en)</option>
+            
+              <option value="ca-fr" >Canada (fr)</option>
+            
+              <option value="ct-ca" >Catalonia</option>
+            
+              <option value="cl-es" >Chile</option>
+            
+              <option value="cn-zh" >China</option>
+            
+              <option value="co-es" >Colombia</option>
+            
+              <option value="hr-hr" >Croatia</option>
+            
+              <option value="cz-cs" >Czech Republic</option>
+            
+              <option value="dk-da" >Denmark</option>
+            
+              <option value="ee-et" >Estonia</option>
+            
+              <option value="fi-fi" >Finland</option>
+            
+              <option value="fr-fr" >France</option>
+            
+              <option value="de-de" >Germany</option>
+            
+              <option value="gr-el" >Greece</option>
+            
+              <option value="hk-tzh" >Hong Kong</option>
+            
+              <option value="hu-hu" >Hungary</option>
+            
+              <option value="is-is" >Iceland</option>
+            
+              <option value="in-en" >India (en)</option>
+            
+              <option value="id-en" >Indonesia (en)</option>
+            
+              <option value="ie-en" >Ireland</option>
+            
+              <option value="il-en" >Israel (en)</option>
+            
+              <option value="it-it" >Italy</option>
+            
+              <option value="jp-jp" >Japan</option>
+            
+              <option value="kr-kr" >Korea</option>
+            
+              <option value="lv-lv" >Latvia</option>
+            
+              <option value="lt-lt" >Lithuania</option>
+            
+              <option value="my-en" >Malaysia (en)</option>
+            
+              <option value="mx-es" >Mexico</option>
+            
+              <option value="nl-nl" >Netherlands</option>
+            
+              <option value="nz-en" >New Zealand</option>
+            
+              <option value="no-no" >Norway</option>
+            
+              <option value="pk-en" >Pakistan (en)</option>
+            
+              <option value="pe-es" >Peru</option>
+            
+              <option value="ph-en" >Philippines (en)</option>
+            
+              <option value="pl-pl" >Poland</option>
+            
+              <option value="pt-pt" >Portugal</option>
+            
+              <option value="ro-ro" >Romania</option>
+            
+              <option value="ru-ru" >Russia</option>
+            
+              <option value="xa-ar" >Saudi Arabia</option>
+            
+              <option value="sg-en" >Singapore</option>
+            
+              <option value="sk-sk" >Slovakia</option>
+            
+              <option value="sl-sl" >Slovenia</option>
+            
+              <option value="za-en" >South Africa</option>
+            
+              <option value="es-ca" >Spain (ca)</option>
+            
+              <option value="es-es" >Spain (es)</option>
+            
+              <option value="se-sv" >Sweden</option>
+            
+              <option value="ch-de" >Switzerland (de)</option>
+            
+              <option value="ch-fr" >Switzerland (fr)</option>
+            
+              <option value="tw-tzh" >Taiwan</option>
+            
+              <option value="th-en" >Thailand (en)</option>
+            
+              <option value="tr-tr" >Turkey</option>
+            
+              <option value="us-en" >US (English)</option>
+            
+              <option value="us-es" >US (Spanish)</option>
+            
+              <option value="ua-uk" >Ukraine</option>
+            
+              <option value="uk-en" >United Kingdom</option>
+            
+              <option value="vn-en" >Vietnam (en)</option>
+            
+          </select>
+        </div>
+
+        <div class="frm__select frm__select--last">
+          <select class="" name="df">
+            
+              <option value="" selected>Any Time</option>
+            
+              <option value="d" >Past Day</option>
+            
+              <option value="w" >Past Week</option>
+            
+              <option value="m" >Past Month</option>
+            
+              <option value="y" >Past Year</option>
+            
+          </select>
+        </div>
+      </form>
+    </div>
+
+    
+
+    
+      <!-- Web results are present -->
+      <div>
+        <div class="serp__results">
+          <div id="links" class="results">
+            
+
+            
+              
+                <div class="result results_links results_links_deep web-result ">
+                  <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+                    
+                      <h2 class="result__title">
+                        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fdoc.rust%2Dlang.org%2Fbook%2Fch04%2D01%2Dwhat%2Dis%2Downership.html&amp;rut=5e4850fe304fb8355d5cedd865369b99a192a001caadb0f821f77df220ece858">What is Ownership? - The Rust Programming Language</a>
+                      </h2>
+
+                    
+
+                    
+                      <div class="result__extras">
+                        <div class="result__extras__url">
+                          <span class="result__icon">
+                            <a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fdoc.rust%2Dlang.org%2Fbook%2Fch04%2D01%2Dwhat%2Dis%2Downership.html&amp;rut=5e4850fe304fb8355d5cedd865369b99a192a001caadb0f821f77df220ece858">
+                              <img class="result__icon__img" width="16" height="16" alt="" src="//external-content.duckduckgo.com/ip3/doc.rust-lang.org.ico" name="i15" />
+                            </a>
+                          </span>
+                          <a class="result__url" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fdoc.rust%2Dlang.org%2Fbook%2Fch04%2D01%2Dwhat%2Dis%2Downership.html&amp;rut=5e4850fe304fb8355d5cedd865369b99a192a001caadb0f821f77df220ece858">
+                            doc.rust-lang.org/book/ch04-01-what-is-ownership.html
+                          </a>
+                          
+                        </div>
+                      </div>
+                    
+
+                    
+                      
+                        <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fdoc.rust%2Dlang.org%2Fbook%2Fch04%2D01%2Dwhat%2Dis%2Downership.html&amp;rut=5e4850fe304fb8355d5cedd865369b99a192a001caadb0f821f77df220ece858">What Is <b>Ownership</b>? <b>Ownership</b> is a set of rules that govern how a <b>Rust</b> program manages memory. All programs have to manage the way they use a computer&#x27;s memory while running.</a>
+                      
+                    
+
+                    <div class="clear"></div>
+                  </div>
+                </div>
+              
+            
+              
+                <div class="result results_links results_links_deep web-result ">
+                  <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+                    
+                      <h2 class="result__title">
+                        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fdoc.rust%2Dlang.org%2Fbook%2Fch04%2D00%2Dunderstanding%2Downership.html&amp;rut=45f027e8ab49cf320d2f055393140796e722768792beb64b3c4e6789334a3944">Understanding Ownership - The Rust Programming Language</a>
+                      </h2>
+
+                    
+
+                    
+                      <div class="result__extras">
+                        <div class="result__extras__url">
+                          <span class="result__icon">
+                            <a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fdoc.rust%2Dlang.org%2Fbook%2Fch04%2D00%2Dunderstanding%2Downership.html&amp;rut=45f027e8ab49cf320d2f055393140796e722768792beb64b3c4e6789334a3944">
+                              <img class="result__icon__img" width="16" height="16" alt="" src="//external-content.duckduckgo.com/ip3/doc.rust-lang.org.ico" name="i15" />
+                            </a>
+                          </span>
+                          <a class="result__url" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fdoc.rust%2Dlang.org%2Fbook%2Fch04%2D00%2Dunderstanding%2Downership.html&amp;rut=45f027e8ab49cf320d2f055393140796e722768792beb64b3c4e6789334a3944">
+                            doc.rust-lang.org/book/ch04-00-understanding-ownership.html
+                          </a>
+                          
+                        </div>
+                      </div>
+                    
+
+                    
+                      
+                        <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fdoc.rust%2Dlang.org%2Fbook%2Fch04%2D00%2Dunderstanding%2Downership.html&amp;rut=45f027e8ab49cf320d2f055393140796e722768792beb64b3c4e6789334a3944">Understanding <b>Ownership</b> <b>Ownership</b> is <b>Rust&#x27;s</b> most unique feature and has deep implications for the rest of the language. It enables <b>Rust</b> to make memory safety guarantees without needing a garbage collector, so it&#x27;s important to understand how <b>ownership</b> works. In this chapter, we&#x27;ll talk about <b>ownership</b> as well as several related features: borrowing, slices, and how <b>Rust</b> lays data out in ...</a>
+                      
+                    
+
+                    <div class="clear"></div>
+                  </div>
+                </div>
+              
+            
+              
+                <div class="result results_links results_links_deep web-result ">
+                  <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+                    
+                      <h2 class="result__title">
+                        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.w3schools.com%2Frust%2Frust_ownership.php&amp;rut=c98cdde370b844e7f24cb4ada2f3d3c15904cc64b2669c9aaef42dec9d191e65">Rust Ownership - W3Schools</a>
+                      </h2>
+
+                    
+
+                    
+                      <div class="result__extras">
+                        <div class="result__extras__url">
+                          <span class="result__icon">
+                            <a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.w3schools.com%2Frust%2Frust_ownership.php&amp;rut=c98cdde370b844e7f24cb4ada2f3d3c15904cc64b2669c9aaef42dec9d191e65">
+                              <img class="result__icon__img" width="16" height="16" alt="" src="//external-content.duckduckgo.com/ip3/www.w3schools.com.ico" name="i15" />
+                            </a>
+                          </span>
+                          <a class="result__url" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.w3schools.com%2Frust%2Frust_ownership.php&amp;rut=c98cdde370b844e7f24cb4ada2f3d3c15904cc64b2669c9aaef42dec9d191e65">
+                            www.w3schools.com/rust/rust_ownership.php
+                          </a>
+                          
+                        </div>
+                      </div>
+                    
+
+                    
+                      
+                        <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.w3schools.com%2Frust%2Frust_ownership.php&amp;rut=c98cdde370b844e7f24cb4ada2f3d3c15904cc64b2669c9aaef42dec9d191e65"><b>Ownership</b> <b>Rust</b> uses &quot;<b>ownership</b>&quot; to manage memory in a safe way. Every value in <b>Rust</b> has an owner. The owner is usually a variable.</a>
+                      
+                    
+
+                    <div class="clear"></div>
+                  </div>
+                </div>
+              
+            
+              
+                <div class="result results_links results_links_deep web-result ">
+                  <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+                    
+                      <h2 class="result__title">
+                        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Frust%2Dbook.cs.brown.edu%2Fch04%2D01%2Dwhat%2Dis%2Downership.html&amp;rut=6d7d2eec2b766bff15676946663f5bc44d0c7862b31e6cadd8f3c5f95ebc8d64">What is Ownership? - The Rust Programming Language</a>
+                      </h2>
+
+                    
+
+                    
+                      <div class="result__extras">
+                        <div class="result__extras__url">
+                          <span class="result__icon">
+                            <a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Frust%2Dbook.cs.brown.edu%2Fch04%2D01%2Dwhat%2Dis%2Downership.html&amp;rut=6d7d2eec2b766bff15676946663f5bc44d0c7862b31e6cadd8f3c5f95ebc8d64">
+                              <img class="result__icon__img" width="16" height="16" alt="" src="//external-content.duckduckgo.com/ip3/rust-book.cs.brown.edu.ico" name="i15" />
+                            </a>
+                          </span>
+                          <a class="result__url" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Frust%2Dbook.cs.brown.edu%2Fch04%2D01%2Dwhat%2Dis%2Downership.html&amp;rut=6d7d2eec2b766bff15676946663f5bc44d0c7862b31e6cadd8f3c5f95ebc8d64">
+                            rust-book.cs.brown.edu/ch04-01-what-is-ownership.html
+                          </a>
+                          
+                        </div>
+                      </div>
+                    
+
+                    
+                      
+                        <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Frust%2Dbook.cs.brown.edu%2Fch04%2D01%2Dwhat%2Dis%2Downership.html&amp;rut=6d7d2eec2b766bff15676946663f5bc44d0c7862b31e6cadd8f3c5f95ebc8d64"><b>Rust</b> provides a particular way to think about memory. <b>Ownership</b> is a discipline for safely using memory within that way of thinking. The rest of this chapter will explain the <b>Rust</b> model of memory. Variables Live in the Stack Here&#x27;s a program like the one you saw in Section 3.3 that defines a number n and calls a function plus_one on n.</a>
+                      
+                    
+
+                    <div class="clear"></div>
+                  </div>
+                </div>
+              
+            
+              
+                <div class="result results_links results_links_deep web-result ">
+                  <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+                    
+                      <h2 class="result__title">
+                        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fweb.mit.edu%2Frust%2Dlang_v1.25%2Farch%2Famd64_ubuntu1404%2Fshare%2Fdoc%2Frust%2Fhtml%2Fbook%2Ffirst%2Dedition%2Fownership.html&amp;rut=5648deb3149e39bc87db5a38c286382b5c29d2c29a5d3b2368108a5237d00996">Ownership - The Rust Programming Language</a>
+                      </h2>
+
+                    
+
+                    
+                      <div class="result__extras">
+                        <div class="result__extras__url">
+                          <span class="result__icon">
+                            <a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fweb.mit.edu%2Frust%2Dlang_v1.25%2Farch%2Famd64_ubuntu1404%2Fshare%2Fdoc%2Frust%2Fhtml%2Fbook%2Ffirst%2Dedition%2Fownership.html&amp;rut=5648deb3149e39bc87db5a38c286382b5c29d2c29a5d3b2368108a5237d00996">
+                              <img class="result__icon__img" width="16" height="16" alt="" src="//external-content.duckduckgo.com/ip3/web.mit.edu.ico" name="i15" />
+                            </a>
+                          </span>
+                          <a class="result__url" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fweb.mit.edu%2Frust%2Dlang_v1.25%2Farch%2Famd64_ubuntu1404%2Fshare%2Fdoc%2Frust%2Fhtml%2Fbook%2Ffirst%2Dedition%2Fownership.html&amp;rut=5648deb3149e39bc87db5a38c286382b5c29d2c29a5d3b2368108a5237d00996">
+                            web.mit.edu/rust-lang_v1.25/arch/amd64_ubuntu1404/share/doc/rust/html/book/first-edition/ownership.html
+                          </a>
+                          
+                        </div>
+                      </div>
+                    
+
+                    
+                      
+                        <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fweb.mit.edu%2Frust%2Dlang_v1.25%2Farch%2Famd64_ubuntu1404%2Fshare%2Fdoc%2Frust%2Fhtml%2Fbook%2Ffirst%2Dedition%2Fownership.html&amp;rut=5648deb3149e39bc87db5a38c286382b5c29d2c29a5d3b2368108a5237d00996"><b>Ownership</b> This is the first of three sections presenting <b>Rust&#x27;s</b> <b>ownership</b> system. This is one of <b>Rust&#x27;s</b> most distinct and compelling features, with which <b>Rust</b> developers should become quite acquainted. <b>Ownership</b> is how <b>Rust</b> achieves its largest goal, memory safety. There are a few distinct concepts, each with its own chapter: <b>ownership</b>, which you&#x27;re reading now borrowing, and their ...</a>
+                      
+                    
+
+                    <div class="clear"></div>
+                  </div>
+                </div>
+              
+            
+              
+                <div class="result results_links results_links_deep web-result ">
+                  <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+                    
+                      <h2 class="result__title">
+                        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Frustify.rs%2Farticles%2Frust%2Downership%2Dborrowing%2Dexplained&amp;rut=f5c7cb3fba83fdcd44c2178b2ab18054dcf229637d2f92f33ded9705c87c3bb8">Rust Ownership and Borrowing Explained: A Visual Guide for 2026</a>
+                      </h2>
+
+                    
+
+                    
+                      <div class="result__extras">
+                        <div class="result__extras__url">
+                          <span class="result__icon">
+                            <a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Frustify.rs%2Farticles%2Frust%2Downership%2Dborrowing%2Dexplained&amp;rut=f5c7cb3fba83fdcd44c2178b2ab18054dcf229637d2f92f33ded9705c87c3bb8">
+                              <img class="result__icon__img" width="16" height="16" alt="" src="//external-content.duckduckgo.com/ip3/rustify.rs.ico" name="i15" />
+                            </a>
+                          </span>
+                          <a class="result__url" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Frustify.rs%2Farticles%2Frust%2Downership%2Dborrowing%2Dexplained&amp;rut=f5c7cb3fba83fdcd44c2178b2ab18054dcf229637d2f92f33ded9705c87c3bb8">
+                            rustify.rs/articles/rust-ownership-borrowing-explained
+                          </a>
+                          
+                        </div>
+                      </div>
+                    
+
+                    
+                      
+                        <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Frustify.rs%2Farticles%2Frust%2Downership%2Dborrowing%2Dexplained&amp;rut=f5c7cb3fba83fdcd44c2178b2ab18054dcf229637d2f92f33ded9705c87c3bb8">The clearest explanation of <b>Rust</b> <b>ownership</b>, borrowing, and the borrow checker in 2026. Understand why <b>Rust</b> works this way and how to stop fighting the compiler.</a>
+                      
+                    
+
+                    <div class="clear"></div>
+                  </div>
+                </div>
+              
+            
+              
+                <div class="result results_links results_links_deep web-result ">
+                  <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+                    
+                      <h2 class="result__title">
+                        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Flearningrust.org%2Flessons%2F06%2Downership&amp;rut=e114b2c3cdaa9a3eeccbead080313ec63c25a4b4250a5fcf1e127397377d0186">Ownership &amp; Borrowing · Learn Rust | LearningRust.org</a>
+                      </h2>
+
+                    
+
+                    
+                      <div class="result__extras">
+                        <div class="result__extras__url">
+                          <span class="result__icon">
+                            <a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Flearningrust.org%2Flessons%2F06%2Downership&amp;rut=e114b2c3cdaa9a3eeccbead080313ec63c25a4b4250a5fcf1e127397377d0186">
+                              <img class="result__icon__img" width="16" height="16" alt="" src="//external-content.duckduckgo.com/ip3/learningrust.org.ico" name="i15" />
+                            </a>
+                          </span>
+                          <a class="result__url" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Flearningrust.org%2Flessons%2F06%2Downership&amp;rut=e114b2c3cdaa9a3eeccbead080313ec63c25a4b4250a5fcf1e127397377d0186">
+                            learningrust.org/lessons/06-ownership
+                          </a>
+                          
+                        </div>
+                      </div>
+                    
+
+                    
+                      
+                        <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Flearningrust.org%2Flessons%2F06%2Downership&amp;rut=e114b2c3cdaa9a3eeccbead080313ec63c25a4b4250a5fcf1e127397377d0186"><b>Rust</b> <b>ownership</b> explained — understand move semantics, borrowing rules, and how <b>Rust</b> guarantees memory safety without a garbage collector</a>
+                      
+                    
+
+                    <div class="clear"></div>
+                  </div>
+                </div>
+              
+            
+              
+                <div class="result results_links results_links_deep web-result ">
+                  <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+                    
+                      <h2 class="result__title">
+                        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fcppcheatsheet.com%2Fnotes%2Frust%2Frust_ownership.html&amp;rut=0a41f0d8098f540ce62c7862031efea6ff332c6ad786824f72baab346643eb24">Ownership — cppcheatsheet</a>
+                      </h2>
+
+                    
+
+                    
+                      <div class="result__extras">
+                        <div class="result__extras__url">
+                          <span class="result__icon">
+                            <a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fcppcheatsheet.com%2Fnotes%2Frust%2Frust_ownership.html&amp;rut=0a41f0d8098f540ce62c7862031efea6ff332c6ad786824f72baab346643eb24">
+                              <img class="result__icon__img" width="16" height="16" alt="" src="//external-content.duckduckgo.com/ip3/cppcheatsheet.com.ico" name="i15" />
+                            </a>
+                          </span>
+                          <a class="result__url" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fcppcheatsheet.com%2Fnotes%2Frust%2Frust_ownership.html&amp;rut=0a41f0d8098f540ce62c7862031efea6ff332c6ad786824f72baab346643eb24">
+                            cppcheatsheet.com/notes/rust/rust_ownership.html
+                          </a>
+                          
+                        </div>
+                      </div>
+                    
+
+                    
+                      
+                        <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fcppcheatsheet.com%2Fnotes%2Frust%2Frust_ownership.html&amp;rut=0a41f0d8098f540ce62c7862031efea6ff332c6ad786824f72baab346643eb24"><b>Rust&#x27;s</b> <b>ownership</b> model makes the single-owner rule explicit. When you assign a heap-allocated value to another variable, <b>ownership</b> transfers (moves) to the new variable. The original variable becomes invalid, and the compiler will reject any attempt to use it. This eliminates use-after-move bugs at compile time rather than discovering them through crashes or sanitizers at runtime. <b>Rust</b> ...</a>
+                      
+                    
+
+                    <div class="clear"></div>
+                  </div>
+                </div>
+              
+            
+              
+                <div class="result results_links results_links_deep web-result ">
+                  <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+                    
+                      <h2 class="result__title">
+                        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.rustfaq.org%2Fen%2Fwhat%2Dis%2Downership%2Din%2Drust%2Dand%2Dwhy%2Ddoes%2Dit%2Dmatter%2F&amp;rut=9614090837ee374c4ad310b867206c2a66532b4c6f5a67fa79bfee914a4ba76d">What Is Ownership in Rust and Why Does It Matter?</a>
+                      </h2>
+
+                    
+
+                    
+                      <div class="result__extras">
+                        <div class="result__extras__url">
+                          <span class="result__icon">
+                            <a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.rustfaq.org%2Fen%2Fwhat%2Dis%2Downership%2Din%2Drust%2Dand%2Dwhy%2Ddoes%2Dit%2Dmatter%2F&amp;rut=9614090837ee374c4ad310b867206c2a66532b4c6f5a67fa79bfee914a4ba76d">
+                              <img class="result__icon__img" width="16" height="16" alt="" src="//external-content.duckduckgo.com/ip3/www.rustfaq.org.ico" name="i15" />
+                            </a>
+                          </span>
+                          <a class="result__url" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.rustfaq.org%2Fen%2Fwhat%2Dis%2Downership%2Din%2Drust%2Dand%2Dwhy%2Ddoes%2Dit%2Dmatter%2F&amp;rut=9614090837ee374c4ad310b867206c2a66532b4c6f5a67fa79bfee914a4ba76d">
+                            www.rustfaq.org/en/what-is-ownership-in-rust-and-why-does-it-matter/
+                          </a>
+                          
+                        </div>
+                      </div>
+                    
+
+                    
+                      
+                        <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.rustfaq.org%2Fen%2Fwhat%2Dis%2Downership%2Din%2Drust%2Dand%2Dwhy%2Ddoes%2Dit%2Dmatter%2F&amp;rut=9614090837ee374c4ad310b867206c2a66532b4c6f5a67fa79bfee914a4ba76d">Master <b>Rust</b> <b>ownership</b> to write crash-free code. See how single <b>ownership</b> eliminates memory leaks and data races instantly.</a>
+                      
+                    
+
+                    <div class="clear"></div>
+                  </div>
+                </div>
+              
+            
+              
+                <div class="result results_links results_links_deep web-result ">
+                  <div class="links_main links_deep result__body"> <!-- This is the visible part -->
+                    
+                      <h2 class="result__title">
+                        <a rel="nofollow" class="result__a" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.zetcode.com%2Frust%2Fownership%2F&amp;rut=ef36d4a2cee54df8160dd291e772312cf622b7af32ae52c8a14604868c77fcb2">Rust ownership and borrowing - understanding ownership in Rust - ZetCode</a>
+                      </h2>
+
+                    
+
+                    
+                      <div class="result__extras">
+                        <div class="result__extras__url">
+                          <span class="result__icon">
+                            <a rel="nofollow" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.zetcode.com%2Frust%2Fownership%2F&amp;rut=ef36d4a2cee54df8160dd291e772312cf622b7af32ae52c8a14604868c77fcb2">
+                              <img class="result__icon__img" width="16" height="16" alt="" src="//external-content.duckduckgo.com/ip3/www.zetcode.com.ico" name="i15" />
+                            </a>
+                          </span>
+                          <a class="result__url" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.zetcode.com%2Frust%2Fownership%2F&amp;rut=ef36d4a2cee54df8160dd291e772312cf622b7af32ae52c8a14604868c77fcb2">
+                            www.zetcode.com/rust/ownership/
+                          </a>
+                          
+                        </div>
+                      </div>
+                    
+
+                    
+                      
+                        <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.zetcode.com%2Frust%2Fownership%2F&amp;rut=ef36d4a2cee54df8160dd291e772312cf622b7af32ae52c8a14604868c77fcb2"><b>Rust</b> <b>ownership</b> and borrowing tutorial shows how moves, clones, references, mutable borrows, and slices work, and how the borrow checker prevents dangling references and data races.</a>
+                      
+                    
+
+                    <div class="clear"></div>
+                  </div>
+                </div>
+              
+            
+
+            
+              
+              
+                <div class="nav-link">
+                  <form action="/html/" method="post">
+                    <input type="submit" class='btn btn--alt' value="Next" />
+                    <input type="hidden" name="q" value="rust ownership" />
+                    <input type="hidden" name="s" value="10" />
+                    <input type="hidden" name="nextParams" value="" />
+                    <input type="hidden" name="v" value="l" />
+                    <input type="hidden" name="o" value="json" />
+                    <input type="hidden" name="dc" value="11" />
+                    <input type="hidden" name="api" value="d.js" />
+                    <input type="hidden" name="vqd" value="4-104007453749058388976421614095227956756" />
+
+                    
+                    
+                    
+                      <input name="kl" value="wt-wt" type="hidden" />
+                    
+                    
+                    
+                    
+                  </form>
+                </div>
+              
+            
+
+            <div class="feedback-btn">
+              <a rel="nofollow" href="//duckduckgo.com/feedback.html" target="_new">Feedback</a>
+            </div>
+            <div class="clear"></div>
+          </div>
+        </div>
+      </div> <!-- links wrapper //-->
+    
+  </div>
+
+  <div id="bottom_spacing2"></div>
+
+  
+    <img src="//duckduckgo.com/t/sl_h"/>
+  
+</body>
+</html>

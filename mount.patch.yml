@@ -8,7 +8,7 @@
     - id: free-web
       name: /home/mypenfly/projects/dsh-plugins/free-web/src/index.mjs
       config:
-        engines: [yahoojp, so360, sogou, wikipedia]
+        engines: [duckduckgo, yahoojp, so360, sogou, wikipedia]
         # provenance: true      # prefix results with "Engines: …"
         # engineTimeoutMs: 8000
         # verbose: true         # one stderr line per registered provider
