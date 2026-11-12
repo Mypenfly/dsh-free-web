@@ -1,4 +1,4 @@
-next: u011 — 交付确认：重载桌面应用后插件页直接出现 Search engines 卡片；卡住就按 tasks/done/u010.md 的 carry 走
+next: u012 — 把仓库推送到 https://github.com/Mypenfly/dsh-free-web.git（SSH origin、main 分支），并验证克隆后能跑测试
 goal: 让 DSH 内置 `web_search` / `web_fetch` 走免费的本地实现在不改系统提示词、不新增工具的前提下接管（走 `ctx.web` 官方 provider seam），并以可安装插件形式交付
 acceptance:
   - `web_search` / `web_fetch` 工具名、schema、模型可见面完全不变；系统提示词字符数不变；工具数量不变
@@ -28,6 +28,7 @@ done:
   - u007 引擎池 env 覆盖（`DSH_FREE_WEB_ENGINES`，优先级/回落/warn）+ 9 个测试 + 文档；工具面 2591/24 未变
   - u008 干净 profile 从零装/卸演练（dump-config 前后对比 + 活挂载两行日志）；修正 MOUNT/README 的安装步骤
   - u009 引擎勾选客户端半边（`Config` volatile + `src/client.js` + `dsh.client`）；75 测试、活体 set/reset 两条写回路径、工具面 2591/24 未变
+  - u011 交付确认收口（重载指引 + carry；用户未回报即转下一目标）
   - u010 GUI 入口不可见排查：宿主组图与客户端注册都正常，入口是行标题的 Configure 按钮（视觉上只有 ›）；新增 `plugins.bundle.config` 内联卡片 + README 收敛；76 测试、真浏览器（Firefox BiDi + 复制 desktop profile）点通保存写回
 pointers:
   - seam: `@deepseek-ai/dsh-web` → `ctx.web.registerSearchProvider/registerFetchProvider`
@@ -37,12 +38,16 @@ pointers:
   - 活网验证: `node scripts/smoke.mjs`、`node scripts/probe-live-tool.mjs web_search "…"`、`node scripts/measure-wire.mjs <label> --with-plugin`
   - 宿主热载日志: `~/.dsh/logs/desktop-next.log`（改完 src 会重新注册 `pluginId: include:free-web`）
 
-## u011 计划（交付确认）
-- 已修复 u010：插件页现在**直接**在描述下方显示 `Search engines` 卡片（`plugins.bundle.config`，
-  键 `dsh-free-web`），行页的 Configure（`plugins.row.config`）保留；README 收到 55 行，描述不再把卡片挤出首屏
-- 用户侧只差重载一次桌面窗口（`dsh.client` 在 Host 启动时组图；`closeToTray` 下关窗口≠重启 Host）：
-  - Plugins → Free web (keyless) → 描述下方出现 8 个复选框 + Save / Restore defaults
-  - 取消勾选一个引擎 → Save → `~/.dsh/profiles/desktop/cordis.patch.yml` 出现 `- id: free-web / config.engines`
-  - Restore defaults 把那一行删掉（不是写回默认值）
-- 若仍不出现：查 `~/.dsh/logs/desktop-next*.jsonl` 有无 `ClientPackageCompositionError`；对照
-  `.dsh-home/profiles/desktopprobe`（desktop profile 的副本，已用真浏览器点通）复核
+## u012 计划（发布到 GitHub）
+- 远端：`git@github.com:Mypenfly/dsh-free-web.git`（SSH 已认证为 `Mypenfly`；无 `gh` CLI、HTTPS 无 token）
+  —— 仓库已存在（public、空、默认分支 `main`）
+- 分支：本地 `master` → 重命名 `main`，`push -u origin main`（空仓库首次推送决定默认分支）
+- 验证：
+  - `git ls-remote` / GitHub API `/branches` 里出现 `main` 与 9 个提交
+  - 干净目录 `git clone` 一份，`node --test "test/*.test.mjs"` 在**没有** `node_modules` 时是否可跑（读数为证）
+- 发布前检查：`.gitignore` 覆盖 `.dsh-home/`/`.probe/`/`node_modules/`；tracked 文件里无 token/密钥
+
+## 发布注意事项（做完后回填）
+- `package.json` 仍标 `private: true` + 依赖 `@deepseek-ai/schemastery`（非公共 registry），外部用户直接
+  `pnpm install` 可能失败 —— 克隆后测试的读数会说明到底卡不卡
+- `docs/MOUNT.md` / `mount.patch.yml`（手写挂载示例）里是绝对个人路径 `/home/mypenfly/...`，公开仓库里应泛化
