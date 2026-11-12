@@ -25,3 +25,4 @@
 - 当要确认某个插件行有没有配置命名空间 → 探针插件 `inject: ['settings']` 后 `ctx.settings.describe({})` 里找 `ns === '<行 id>'`，有就说明 `Config` 的 volatile 字段被 serve 了；不要指望在 `schema` 里看到 volatile 标记（`plainSchema` 会删）。
 - 当 Plugins 页上「自定义配置页没出现」→ 别先怀疑代码：用复制的 profile 起一个隔离 web 实例（`--port 0`）+ WebDriver BiDi 真浏览器点一遍，先读 `[data-plugin-row-detail]`/`[data-free-web]` 是否在 DOM；行页入口是 `button[aria-label="Configure <title>"]`（可见文本里没有 Configure），行页找不到人时把同一表单再注册进 `plugins.bundle.config`（键=包名）。
 - 当插件页的配置卡片被挤到折叠线以下 → 插件详情渲染的就是包里的 README，把 README 收敛成 50 行左右（长文搬 docs/），卡片位置由描述块高度决定。
+- 当要把本地插件仓库推到 GitHub → 先 `ls-remote`/API 确认远端是否空仓与默认分支（空仓首次推送决定默认分支），本地 `master` 改名 `main` 再 `push -u`；推前把文档里的绝对个人路径换成 `/abs/path/to/...` 与 `link:"$PWD"`，推后用**干净克隆**跑一遍 install+test 当作发布验证。
