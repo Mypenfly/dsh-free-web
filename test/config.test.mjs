@@ -99,3 +99,57 @@ test('resolveEngines keeps configured order and skips non-strings', () => {
   const engines = resolveEngines(['wikipedia', 42, 'sogou'])
   assert.deepEqual(engines.map((engine) => engine.id), ['wikipedia', 'sogou'])
 })
+
+// --- the row form (Plugins page) projection ---------------------------------
+
+test('Config marks only the engine pool as volatile, so that is the whole form', async () => {
+  const { Config } = await import('../src/index.mjs')
+  assert.ok(Config !== undefined, 'the host discovers the form through an exported Config')
+  // `toJSON` is a ref graph (uid + `refs`), which is what the settings service
+  // re-parses into the form schema.
+  const json = Config.toJSON()
+  const node = (ref) => json.refs[ref]
+  const root = node(json.uid)
+  assert.equal(root.type, 'object')
+  assert.deepEqual(Object.keys(root.dict), ['engines'], 'the form shows the pool and nothing else')
+  const engines = node(root.dict.engines)
+  assert.equal(engines.meta.volatile, true)
+  assert.equal(engines.type, 'array')
+})
+
+test('Config resolves the pool into a live reference, with the shipped default pool', async () => {
+  const { Config } = await import('../src/index.mjs')
+  const parsed = Config({ engines: ['sogou', 'yahoojp'] })
+  assert.equal(typeof parsed.engines.get, 'function', 'a volatile field is read through get()')
+  assert.deepEqual(parsed.engines.get(), ['sogou', 'yahoojp'])
+  assert.deepEqual(Config({}).engines.get(), ['yahoojp', 'so360', 'sogou', 'wikipedia', 'duckduckgo'])
+})
+
+test('a schema-declared pool keeps undeclared row options working', async () => {
+  const { Config, apply } = await import('../src/index.mjs')
+  const config = Config({ engines: ['sogou'], verbose: true, acceptLanguage: 'ja' })
+  assert.equal(config.verbose, true, 'unknown keys survive validation')
+  assert.equal(config.acceptLanguage, 'ja')
+  const search = []
+  apply({
+    logger: { info: () => {}, warn: () => {} },
+    web: { registerSearchProvider: (provider) => search.push(provider), registerFetchProvider: () => {} },
+  }, { ...config, fetch: false })
+  assert.deepEqual(search[0].engines.map((engine) => engine.id), ['sogou'])
+})
+
+test('resolveEngines reads a volatile reference instead of falling back to defaults', () => {
+  const ref = { get: () => ['sogou'] }
+  assert.deepEqual(resolveEngines(ref).map((engine) => engine.id), ['sogou'])
+})
+
+test('the registered provider follows the pool live, without a remount', () => {
+  // A volatile commit replaces the value behind the same reference: the provider
+  // must pick it up on the next search, because the host does not remount the row.
+  let pool = ['bing']
+  const ref = { get: () => pool }
+  const provider = mount({ engines: ref }, undefined).search[0]
+  assert.deepEqual(provider.engines.map((engine) => engine.id), ['bing'])
+  pool = ['sogou', 'wikipedia']
+  assert.deepEqual(provider.engines.map((engine) => engine.id), ['sogou', 'wikipedia'])
+})

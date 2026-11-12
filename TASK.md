@@ -1,6 +1,6 @@
 # TASK
 
-next: u009 — 交付验收演练已完成；本单元待用户确认：Plugins 页里的引擎勾选（客户端半边注册 `plugins.row.config` 槽写回 profile patch），还是就此收尾
+next: u010 — 收尾：重启桌面应用后目视确认 Plugins → free-web 的勾选页（`dsh.client` 只在启动时组图），核对日志无 `ClientPackageCompositionError`，然后交付说明
 goal: 让 DSH 内置 `web_search` / `web_fetch` 走免费的本地实现在不改系统提示词、不新增工具的前提下接管（走 `ctx.web` 官方 provider seam），并以可安装插件形式交付
 acceptance:
   - `web_search` / `web_fetch` 工具名、schema、模型可见面完全不变；系统提示词字符数不变；工具数量不变
@@ -12,7 +12,7 @@ acceptance:
   - 自建传输（u006）：`grep -r "await fetch(\|=\s*fetch(" src` 为空；代理取 env（`http_proxy`/`https_proxy`/`all_proxy` + `no_proxy`）；直连 DNS 预检 + pin；gzip/deflate/br 解码；重定向逐跳校验
   - 引擎池可配（u007）：`DSH_FREE_WEB_ENGINES` 优先于 row config；未知 id 只 warn 不崩；不改代码即可缩池
   - 交付可复现（u008）：干净 profile 从零装/卸 bundle 均有读数为证；desktop profile 不动
-  - 图形化引擎勾选（u009，可选）：Plugins 页里能改引擎池并写回 profile；不做也不影响任何既有验收
+  - 图形化引擎勾选（u009，可选，已实现）：Plugins 页里能改引擎池并写回 profile
 constraints:
   - 不做系统提示词注入（对比 dsh-free-search 的做法）
   - 不新增工具、不改 tool-web 的 schema/描述
@@ -29,6 +29,7 @@ done:
   - u006 自建传输（node core + env 代理 CONNECT/absolute-form + DNS 预检/pin + gzip/deflate/br + 单跳）；48 离线测试、活网 smoke、宿主内核探针全绿
   - u007 引擎池 env 覆盖（`DSH_FREE_WEB_ENGINES`，优先级/回落/warn）+ 9 个测试 + 文档；工具面 2591/24 未变
   - u008 干净 profile 从零装/卸演练（dump-config 前后对比 + 活挂载两行日志）；修正 MOUNT/README 的安装步骤
+  - u009 引擎勾选客户端半边（`Config` volatile + `src/client.js` + `dsh.client`）；75 测试、活体 set/reset 两条写回路径、工具面 2591/24 未变
 pointers:
   - seam: `@deepseek-ai/dsh-web` → `ctx.web.registerSearchProvider/registerFetchProvider`
   - 传输: `src/util/transport.mjs`（`request` 单跳）+ `src/util/proxy.mjs`（env 代理/no_proxy）+ `src/util/address.mjs`；`getText` 逐跳跟随
@@ -37,8 +38,11 @@ pointers:
   - 活网验证: `node scripts/smoke.mjs`、`node scripts/probe-live-tool.mjs web_search "…"`、`node scripts/measure-wire.mjs <label> --with-plugin`
   - 宿主热载日志: `~/.dsh/logs/desktop-next.log`（改完 src 会重新注册 `pluginId: include:free-web`）
 
-## u009 计划（待用户确认，未开工）
-- 目标：在 Plugins 页里为 `free-web` 行提供引擎勾选，写回 profile patch（而不是改 bundle patch）
-- 已知成本：纯 host 插件拿不到 `plugins.row.config` 槽，必须加客户端半边（bundle 需带 client 入口 + 槽注册 + 构建产物），并验证 GUI 真能渲染（host 根部 403 `Browser access is disabled` 时只能靠日志/manifest 验证）
-- 替代（零成本，已可用）：`DSH_FREE_WEB_ENGINES` 或 profile patch `- id: free-web config.engines`
-- 若用户不做：直接收尾（u001–u008 已覆盖全部 acceptance）
+## u010 计划（待重启验证）
+- 已交付：`src/client.js` 注册 `plugins.row.config`（key `dsh-free-web#free-web`），host 侧 `Config.engines` 为 volatile；
+  活体证明 `settings.mutate` → profile `cordis.patch.yml` → provider 下一次搜索即用新池，Restore defaults 整行删掉
+- 剩一步（需要用户重启一次桌面应用，`dsh.client`/`exports` 只在启动时组图）：
+  - Plugins → dsh-free-web → free-web 页出现 8 个复选框 + Save / Restore defaults
+  - 勾掉一个引擎 → Save → `~/.dsh/profiles/desktop/cordis.patch.yml` 出现 `- id: free-web config.engines`
+  - 日志 `~/.dsh/logs/desktop-next.log` 无 `ClientPackageCompositionError`（有则说明客户端包拼坏了，先看日志再决定回滚）
+- 如果重启后页面不出现：先查 asar 侧 `client-modules` 的组图日志/`dsh.client.platform`，再查槽 key 是否与 bundle patch 的 row id 一致

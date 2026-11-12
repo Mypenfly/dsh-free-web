@@ -27,3 +27,10 @@
 - cost: 多维护一套 HTTP 客户端（约 500 行 + 18 个离线用例）；`socks*://` 不实现，配了也走直连；TLS-over-tunnel 无本地证书可测，靠活网 smoke 覆盖。
 - rollback: 把 `fetch/provider.mjs` 与 `util/http.mjs` 的 `request` 调用换回全局 `fetch`，删三个 util 文件（工具/schema/提示词都不变）。
 - supersedes: d003 的 cost 段（“无法 DNS pinning”）——d003 的安全策略本身仍 active
+
+## d005 (2026-11-12) — 引擎池的图形化编辑走「volatile Config + 客户端半边 + profile patch」
+- decision: host 侧把 `engines` 声明成 schemastery `.volatile()` 字段（插件现在依赖 `@deepseek-ai/schemastery@~3.19.0`）；客户端半边作为经典脚本 bundle（`dsh.client.platform='web'` + `exports['./client']`）注册 `plugins.row.config`，key=`dsh-free-web#free-web`；保存经 `settings.mutate` 写进 profile 的 `cordis.patch.yml`，消费方（provider）用 getter 每次读取。
+- why: 这是宿主唯一支持的「行配置可编辑」通道：非 volatile 字段不会进表单，非 profile-patch 的写回会被 config-editor 拒绝；用 getter 是因为 volatile 提交是原地 `updateVolatile`，插件不会被重挂。
+- cost: 多一个 npm 依赖 + 一份手写浏览器半边（约 250 行 + 13 个 stub 测试）；`platform`/`exports` 拼错会静默不出包，写坏会 `ClientPackageCompositionError` 拖垮整个 web client；`engines` 从「数组」变成「引用」，所有读点都要拆。
+- rollback: 删 `src/client.js` + `package.json` 的 `dsh.client`/`exports["./client"]`（GUI 面消失，`DSH_FREE_WEB_ENGINES` 与 profile patch 仍然可用）；或整体回滚到 u008。
+- supersedes: none

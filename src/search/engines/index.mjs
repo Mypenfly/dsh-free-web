@@ -77,7 +77,8 @@ export function enginesFromEnv(env = process.env) {
  * @returns {Array<typeof bing>} the resolved engine modules, in configured order
  */
 export function resolveEngines(configured, warn = () => {}) {
-  const ids = Array.isArray(configured) && configured.length > 0 ? configured : DEFAULT_ENGINES
+  const value = unwrapVolatile(configured)
+  const ids = Array.isArray(value) && value.length > 0 ? value : DEFAULT_ENGINES
   const engines = []
   for (const id of ids) {
     if (typeof id !== 'string') continue
@@ -89,4 +90,19 @@ export function resolveEngines(configured, warn = () => {}) {
     engines.push(engine)
   }
   return engines
+}
+
+/**
+ * Unwrap a live config reference.
+ *
+ * A `.volatile()` field is committed in place, so the plugin receives
+ * `{ get(): value }` rather than the value itself. Reading it here keeps every
+ * caller (and the live pool getter in `index.mjs`) free of that detail.
+ *
+ * @param {unknown} value config value or a volatile reference to it
+ * @returns {unknown} the value behind the reference, when there is one
+ */
+export function unwrapVolatile(value) {
+  if (value !== null && typeof value === 'object' && typeof value.get === 'function') return value.get()
+  return value
 }

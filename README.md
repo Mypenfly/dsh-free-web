@@ -135,6 +135,29 @@ web_fetch { url: "https://doc.rust-lang.org/book/ch04-00-understanding-ownership
 | `maxBodyChars` | `100000` | cap on returned characters |
 | `verbose` | `false` | write one mount line to stderr |
 
+### Changing the pool from the GUI
+
+The row also ships a browser half, so the pool is editable where the plugin is listed:
+
+**Plugins → dsh-free-web → free-web → Configure** shows one checkbox per engine, **Save** and
+**Restore defaults**. Saving writes the pool to *your profile's* `cordis.patch.yml` as an
+override of the bundle's own list:
+
+```yaml
+# ~/.dsh/profiles/<profile>/cordis.patch.yml  (written by the settings service)
+- id: free-web
+  config:
+    engines: [sogou, wikipedia]
+```
+
+`engines` is the plugin's only `.volatile()` config field, which is what makes it a form: the
+host commits the new value in place, so the mounted provider searches the new pool on the next
+call — no restart. **Restore defaults** removes the override (the bundle patch's list applies
+again) instead of writing a value.
+
+The environment variable still wins over both: with `DSH_FREE_WEB_ENGINES` set, the picker's
+value is stored and visible but not used until the variable is unset.
+
 ## Limits worth knowing
 
 - **Transport.** HTTP is the plugin's own stack on Node core (`node:http`, `node:https`,
@@ -158,7 +181,8 @@ web_fetch { url: "https://doc.rust-lang.org/book/ch04-00-understanding-ownership
 ## Layout
 
 ```
-src/index.mjs              plugin entry: registers both providers
+src/index.mjs              plugin entry: registers both providers, declares the form schema
+src/client.js              browser half: the engine picker on the row's Plugins page
 src/search/provider.mjs     pool runner: concurrency, benching, decoys, fusion, memo
 src/search/rank.mjs         RRF + canonical dedupe
 src/search/gates.mjs        wall markers + coherence/decoy gate
@@ -171,6 +195,7 @@ src/util/address.mjs        non-public destination policy (shared by transport a
 src/util/*.mjs              http, html, url, dates, errors
 cordis.patch.yml            bundle patch: insert the row, re-point the `web` seam
 dsh-plugin.json             plugin manifest (display metadata, host facet)
+package.json               also `dsh.bundle.patch` + `dsh.client` (the browser half)
 locale/{en,zh}.json         title + description shown in Plugins
 assets/icon.png             icon shown in Plugins
 mount.patch.yml             manual mount overlay (absolute path, no bundle)

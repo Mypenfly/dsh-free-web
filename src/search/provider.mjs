@@ -43,7 +43,8 @@ export class FreeSearchProvider {
   /**
    * @param {object} options
    * @param {string} options.id provider id registered with the seam
-   * @param {Array<{ id: string, search: (query: string, options: object) => Promise<Array<object>> }>} options.engines
+   * @param {Array<{ id: string, search: (query: string, options: object) => Promise<Array<object>> }> | (() => Array<{ id: string, search: (query: string, options: object) => Promise<Array<object>> }>)} options.engines
+   *   the pool, or a getter for it when the row config is live-editable
    * @param {number} options.timeoutMs per-engine budget
    * @param {string} options.acceptLanguage Accept-Language for engine requests
    * @param {boolean} [options.provenance] prefix results with the engine summary
@@ -52,12 +53,21 @@ export class FreeSearchProvider {
    */
   constructor(options) {
     this.id = options.id
-    this.engines = options.engines
+    // A getter lets the Plugins page swap the pool under a mounted provider: the
+    // row config is volatile, so the host commits it in place instead of
+    // remounting this plugin.
+    const engines = options.engines
+    this.enginesOf = typeof engines === 'function' ? engines : () => engines
     this.timeoutMs = options.timeoutMs
     this.acceptLanguage = options.acceptLanguage
     this.provenance = options.provenance ?? true
     this.log = options.log ?? (() => {})
     this.now = options.now ?? Date.now
+  }
+
+  /** The pool in force for the next search. */
+  get engines() {
+    return this.enginesOf()
   }
 
   /** Local usability check: at least one engine is configured. Never touches the network. */

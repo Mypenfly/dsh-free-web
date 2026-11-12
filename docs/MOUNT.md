@@ -251,3 +251,57 @@ Rules:
 The variable is a host-side escape hatch: it lives in the process environment, so it also
 applies when the plugin runs inside the desktop app (start it from a shell with the variable
 exported).
+
+## 10. The engine picker (browser half)
+
+The bundle ships two halves: `src/index.mjs` registers the providers, `src/client.js` draws the
+row's configuration. The shell loads the second one through a plain `<script src>`, so it is a
+factory bundle registered under the package name — not an ES module:
+
+```js
+window.__ModuleLoader__.load({ id: 'dsh-free-web', factory: (require) => { … } })
+```
+
+`package.json` is what makes the host serve it:
+
+```json
+"exports": { "./client": "./src/client.js" },
+"dsh": { "client": { "platform": "web", "inject": ["slots", "locale", "configForms"] } }
+```
+
+`platform` must be exactly `"web"`: any other value (or a missing `exports["./client"]`) makes
+the host skip the package silently. Change any of it and restart the app — the client module
+graph is rebuilt at boot, unlike `src/client.js` itself, which the browser picks up on reload.
+
+Where an edit lands, and why:
+
+1. `src/index.mjs` exports `Config` with `engines` marked `.volatile()`. Only volatile fields
+   are projected into a row form (`dsh-settings`), and volatile commits happen in place instead
+   of remounting the plugin.
+2. `src/client.js` registers `plugins.row.config` keyed `dsh-free-web#free-web` — that key is
+   what turns the row's title into a **Configure** control.
+3. Save calls `form.mutate([{ op: 'set', path: ['engines'], value }], revision)`; the host writes
+   it to **your profile's** `cordis.patch.yml` as `- id: free-web`, over the bundle patch's list.
+4. The provider reads the pool through a getter, so the next search uses the new pool with no
+   restart.
+
+Verifying it without clicking, on an isolated profile (evidence under `.dsh/refs/`):
+
+```bash
+# 1. the namespace is served, from a throwaway probe row that calls the same host API
+DSH_HOME=$PWD/.dsh-home PROBE_ACTION=set dsh --profile fwform --patch .probe/u009-overlay.yml headless "say hi"
+#   probe: served=true value={"engines":["sogou"]} user={"engines":["sogou"]} revision=0
+#   probe: provider before = ["sogou"]
+#   probe: after value={"engines":["sogou","wikipedia"]} revision=1
+#   probe: provider after = ["sogou","wikipedia"]
+#   probe: profile patch now: "- id: free-web |   config: |     engines: |       - sogou |       - wikipedia"
+
+# 2. Restore defaults removes the override instead of writing one
+DSH_HOME=$PWD/.dsh-home PROBE_ACTION=reset dsh --profile fwform --patch .probe/u009-overlay.yml headless "say hi"
+#   probe: after value={"engines":["duckduckgo","yahoojp","so360","sogou","wikipedia"]} user={}
+#   probe: profile patch now: "- id: llm-deepseek |   config: |     baseURL: ... "   (free-web row gone)
+```
+
+`node --test test/client.test.mjs` covers the other half without a browser: the classic-script
+format, the registration key, the checkbox state, the exact ops Save emits, and the empty-pool
+guard.

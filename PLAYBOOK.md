@@ -19,3 +19,7 @@
 - 当给插件加 env 覆盖 → 变量名全大写精确匹配（Linux env 区分大小写），并让「解析后为空」= 不覆盖，别把空值当成「关掉功能」。
 - 当要在干净 profile 里验收 bundle 交付 → `dsh --profile X --from-default-profile headless --dump-config` 建 profile，`dsh plugin --profile X add link:$PWD`（自动写依赖 + `dsh.profile.bundles` + pnpm link），dump 里认 `# == <包名>` 与 `web` 行的 provider id；回滚=从 bundles 删该条目。
 - 当要判断一次「装没装上」→ 看 dump-config 的 `# == <pkg>` 段与 `dsh.profile.bundles`，别看 pnpm 输出；profile 的 overlay 也能按 id 覆盖 bundle 插入的行。
+- 当要在 Plugins 页给某个 bundle 行加配置界面 → host 侧导出 `Config` 且把可编辑字段 `.volatile()`；客户端半边注册 `plugins.row.config`，key = `<包名>#<行 id>`；保存走 `settings.mutate(ns, ops, rev)`，落点是 profile 的 `cordis.patch.yml`（不是 bundle patch）。
+- 当「在 UI 里改了配置但插件行为没变」→ 先看那个字段是不是 `.volatile()` 引用（`{get()}`）；消费方必须每次 `.get()` 或直接拿 getter，否则永远读构建时的快照。
+- 当用 `--patch` CLI overlay 验证设置写回 → 会吃到 `overridden by a home patch or command-line overlay`；把初始值写进 profile 的 `cordis.patch.yml`，overlay 只用来 `insert` 探针行。
+- 当要确认某个插件行有没有配置命名空间 → 探针插件 `inject: ['settings']` 后 `ctx.settings.describe({})` 里找 `ns === '<行 id>'`，有就说明 `Config` 的 volatile 字段被 serve 了；不要指望在 `schema` 里看到 volatile 标记（`plainSchema` 会删）。

@@ -28,7 +28,9 @@
  * over the row's `config.engines`.
  */
 
-import { ENGINE_ENV, enginesFromEnv, resolveEngines } from './search/engines/index.mjs'
+import z from '@deepseek-ai/schemastery'
+
+import { DEFAULT_ENGINES, ENGINE_ENV, enginesFromEnv, resolveEngines } from './search/engines/index.mjs'
 import { FreeSearchProvider } from './search/provider.mjs'
 import { FreeFetchProvider } from './fetch/provider.mjs'
 
@@ -37,6 +39,24 @@ export const name = 'free-web'
 
 /** The seam this plugin registers into; without it there is nothing to take over. */
 export const inject = ['web']
+
+/**
+ * Row configuration schema.
+ *
+ * `engines` is `.volatile()`, and that one word is the whole browser half's
+ * precondition: the settings service projects only volatile fields into a row's
+ * form, and commits them in place (`loader/volatile-update`) instead of
+ * remounting the plugin. A pool saved from the Plugins page therefore lands in
+ * the profile's `cordis.patch.yml` as `- id: free-web`, over the bundle patch's
+ * own list, and applies to the next search without a restart.
+ *
+ * Everything else this plugin reads stays undeclared on purpose: schemastery
+ * keeps unknown keys, so `verbose`, `acceptLanguage`, and the rest keep working
+ * from the patch while the form shows only the engine pool.
+ */
+export const Config = z.object({
+  engines: z.array(z.string()).default([...DEFAULT_ENGINES]).volatile(),
+})
 
 /** Default ids; the `web` row must be pointed at these. */
 const DEFAULT_SEARCH_ID = 'free-search'
@@ -83,15 +103,20 @@ export function apply(ctx, config = {}) {
     // that resolves to nothing usable falls back to the config, so a typo costs a
     // warning rather than the tool.
     const override = enginesFromEnv()
-    let engines = resolveEngines(override ?? config.engines, warn)
+    const envEngines = override === undefined ? undefined : resolveEngines(override, warn)
+    // Read the pool on every search rather than once at mount: `engines` is a
+    // volatile field, so the Plugins page can replace it under this provider.
+    const pool = () => (envEngines !== undefined && envEngines.length > 0
+      ? envEngines
+      : resolveEngines(config.engines, warn))
+    const engines = pool()
     if (override !== undefined) {
-      if (engines.length > 0) {
+      if (envEngines.length > 0) {
         const line = `free-web: engine pool overridden by ${ENGINE_ENV}=${override.join(',')}`
         log(line)
         if (config.verbose === true) process.stderr.write(`${line}\n`)
       } else {
         warn(`free-web: ${ENGINE_ENV}="${override.join(',')}" has no usable engine; falling back to the configured pool`)
-        engines = resolveEngines(config.engines, warn)
       }
     }
     if (engines.length === 0) {
@@ -99,7 +124,7 @@ export function apply(ctx, config = {}) {
     } else {
       const provider = new FreeSearchProvider({
         id: typeof config.searchProvider === 'string' && config.searchProvider.length > 0 ? config.searchProvider : DEFAULT_SEARCH_ID,
-        engines,
+        engines: pool,
         timeoutMs: positiveNumber(config.engineTimeoutMs, DEFAULT_ENGINE_TIMEOUT_MS),
         acceptLanguage: typeof config.acceptLanguage === 'string' && config.acceptLanguage.length > 0
           ? config.acceptLanguage

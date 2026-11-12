@@ -10,7 +10,8 @@
     "./package.json": "./package.json",
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./locale/*.json": "./locale/*.json",
-    "./icon": "./assets/icon.png"
+    "./icon": "./assets/icon.png",
+    "./client": "./src/client.js"
   },
   "files": [
     "src",
@@ -34,8 +35,19 @@
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "slots",
+        "locale",
+        "configForms"
+      ]
     }
   },
   "icon": "./assets/icon.png",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.19.0"
+  }
 }
