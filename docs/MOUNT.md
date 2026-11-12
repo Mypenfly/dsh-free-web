@@ -278,8 +278,15 @@ Where an edit lands, and why:
 1. `src/index.mjs` exports `Config` with `engines` marked `.volatile()`. Only volatile fields
    are projected into a row form (`dsh-settings`), and volatile commits happen in place instead
    of remounting the plugin.
-2. `src/client.js` registers `plugins.row.config` keyed `dsh-free-web#free-web` — that key is
-   what turns the row's title into a **Configure** control.
+2. `src/client.js` registers the picker twice, and both entries wait on
+   `configForms.whileServed(['free-web'])`:
+   - `plugins.bundle.config` keyed `dsh-free-web` — the **Search engines** card on the plugin's
+     own page, which is where a person lands after clicking the plugin in the list;
+   - `plugins.row.config` keyed `dsh-free-web#free-web` — the same picker on the row's detail
+     page, and what turns the row's title into a Configure control.
+
+   The bundle page owns its form (`configForms.get('free-web')`); the row page is handed one by
+   the page. Both write through the same queue, so either entry shows the stored pool.
 3. Save calls `form.mutate([{ op: 'set', path: ['engines'], value }], revision)`; the host writes
    it to **your profile's** `cordis.patch.yml` as `- id: free-web`, over the bundle patch's list.
 4. The provider reads the pool through a getter, so the next search uses the new pool with no

@@ -233,11 +233,39 @@ window.__ModuleLoader__.load({
     const inject = ['slots', 'locale', 'configForms']
 
     /**
-     * Mount the row configuration while the host serves this row's namespace.
+     * Render the picker from a `configForms` controller.
      *
-     * `whileServed` is what keeps the Configure control honest: the entry exists
-     * only while the host still has a form for `free-web`, so a row that failed
-     * to mount shows no control instead of an empty page.
+     * The row page hands its own `form` prop in, but `plugins.bundle.config` has
+     * no such prop — a bundle-wide section owns its form. This wrapper reads the
+     * controller the way `EnginePicker` expects one, so both entries draw the
+     * same pixels and write through the same queue.
+     *
+     * @param {object} props slot props plus `controller` from `configForms.get`
+     */
+    function ControllerPicker(props) {
+      const { controller, ...rest } = props
+      const state = React.useSyncExternalStore(
+        (listener) => controller.subscribe(listener),
+        () => controller.getSnapshot(),
+        () => controller.getSnapshot(),
+      )
+      const form = {
+        state,
+        mutate: (operations, expectedRevision) => controller.mutate(operations, expectedRevision),
+      }
+      return React.createElement(EnginePicker, { ...rest, form })
+    }
+
+    /**
+     * Mount the engine picker while the host serves this row's namespace.
+     *
+     * Two entries, because the page has two places a person looks: the bundle's
+     * own page (`plugins.bundle.config`, drawn as soon as the bundle is opened)
+     * and the row's detail page (`plugins.row.config`, which also turns the row
+     * title into a Configure control). Both are keyed registrations into the
+     * Plugins page, both read the same `configForms` controller, and neither
+     * exists unless the host actually serves the `free-web` section — so a row
+     * that failed to mount shows no control instead of an empty page.
      *
      * @param {object} ctx browser plugin context
      */
@@ -247,12 +275,24 @@ window.__ModuleLoader__.load({
         'free-web: dictionaries',
       )
       ctx.effect(
-        () => ctx.configForms.whileServed([NS], () => ctx.slots.inject('plugins.row.config', () => ctx.slots.register({
-          name: 'plugins.row.config',
-          key: ROW_KEY,
-          locale: LOCALE_NS,
-        }, EnginePicker))),
-        'free-web: row configuration',
+        () => ctx.configForms.whileServed([NS], () => {
+          const offBundle = ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({
+            name: 'plugins.bundle.config',
+            key: PKG,
+            locale: LOCALE_NS,
+            inject: () => ({ controller: ctx.configForms.get(NS) }),
+          }, ControllerPicker))
+          const offRow = ctx.slots.inject('plugins.row.config', () => ctx.slots.register({
+            name: 'plugins.row.config',
+            key: ROW_KEY,
+            locale: LOCALE_NS,
+          }, EnginePicker))
+          return () => {
+            offBundle()
+            offRow()
+          }
+        }),
+        'free-web: engine picker',
       )
     }
 

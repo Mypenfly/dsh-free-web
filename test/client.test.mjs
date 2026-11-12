@@ -65,6 +65,14 @@ function createStubReact() {
       record.deps[index] = list
       if (changed) record.pending.push(effect)
     },
+    useSyncExternalStore(subscribe, getSnapshot) {
+      // The stub renders once per state change, so reading the snapshot is
+      // enough: the controller's own store is what a browser re-renders from.
+      const record = active
+      const index = record.cursor++
+      if (!(index in (record.subscribed ??= {}))) record.subscribed[index] = subscribe
+      return getSnapshot()
+    },
   }
 
   /**
@@ -134,7 +142,8 @@ async function loadBundle() {
 
 /** A plugin context stub that records what the browser half registers. */
 function contextStub() {
-  const record = { dictionaries: [], served: [], slots: [], effects: [] }
+  const record = { dictionaries: [], served: [], slots: [], effects: [], controllers: [] }
+  const controllers = new Map()
   const ctx = {
     locale: {
       bind: (ns) => (key) => key,
@@ -142,6 +151,20 @@ function contextStub() {
     },
     configForms: {
       whileServed: (namespaces, run) => { record.served.push(namespaces); return run() },
+      get: (ns) => {
+        if (!controllers.has(ns)) {
+          const calls = []
+          const snapshot = { status: 'ready', value: { engines: ['yahoojp'] }, base: {}, user: {}, revision: 3, writable: true }
+          controllers.set(ns, {
+            calls,
+            getSnapshot: () => snapshot,
+            subscribe: () => () => {},
+            mutate: (ops, revision) => { calls.push({ ops, revision }); return Promise.resolve({ revision: revision + 1 }) },
+          })
+          record.controllers.push(ns)
+        }
+        return controllers.get(ns)
+      },
     },
     slots: {
       inject: (name, run) => run(),
@@ -159,11 +182,17 @@ function registrationOf(materialized) {
   return record
 }
 
+/** The component registered into one of the page's slots. */
+function componentFor(materialized, name) {
+  const record = registrationOf(materialized)
+  const entry = record.slots.find((slot) => slot.options.name === name)
+  assert.ok(entry !== undefined, `no registration into ${name}`)
+  return entry.component
+}
+
 /** The component the browser half registered into `plugins.row.config`. */
 function registeredComponent(materialized) {
-  const record = registrationOf(materialized)
-  assert.equal(record.slots.length, 1)
-  return record.slots[0].component
+  return componentFor(materialized, 'plugins.row.config')
 }
 
 /** A form stub shaped like the page's `formFor()` result. */
@@ -217,19 +246,49 @@ test('the bundle registers a factory under the package name', async () => {
   assert.deepEqual(materialized.inject, ['slots', 'locale', 'configForms'])
 })
 
-test('apply registers the row configuration under <pkg>#<row id> while the namespace is served', async () => {
+test('apply registers the engine picker on both the bundle page and the row page', async () => {
   const { materialized } = await loadBundle()
   const record = registrationOf(materialized)
-  assert.deepEqual(record.served, [['free-web']], 'the entry must wait on the row namespace')
-  const [{ options }] = record.slots
-  assert.equal(options.name, 'plugins.row.config')
-  assert.equal(options.key, ROW_KEY)
-  assert.equal(options.locale, 'freeWeb')
+  assert.deepEqual(record.served, [['free-web']], 'the entries must wait on the row namespace')
+
+  const bundleEntry = record.slots.find((slot) => slot.options.name === 'plugins.bundle.config')
+  assert.ok(bundleEntry !== undefined, 'the bundle page needs its own entry')
+  assert.equal(bundleEntry.options.key, 'dsh-free-web', 'a bundle page is keyed by the package name')
+  assert.equal(bundleEntry.options.locale, 'freeWeb')
+  assert.deepEqual(Object.keys(bundleEntry.options.inject()), ['controller'], 'the bundle page owns its form')
+  assert.deepEqual(record.controllers, ['free-web'], 'the bundle page binds the served section itself')
+
+  const rowEntry = record.slots.find((slot) => slot.options.name === 'plugins.row.config')
+  assert.ok(rowEntry !== undefined, 'the row page keeps its Configure control')
+  assert.equal(rowEntry.options.key, ROW_KEY)
+  assert.equal(rowEntry.options.locale, 'freeWeb')
+
   assert.equal(record.dictionaries.length, 1)
   assert.equal(record.dictionaries[0].ns, 'freeWeb')
   for (const language of ['en', 'zh']) {
     assert.ok(record.dictionaries[0].dictionaries[language].title, `${language} dictionary renders a title`)
   }
+})
+
+test('the bundle entry renders from the served section and writes through it', async () => {
+  const { materialized, translate, primitives } = await loadBundle()
+  const Component = componentFor(materialized, 'plugins.bundle.config')
+  const controller = {
+    calls: [],
+    getSnapshot: () => ({ status: 'ready', value: { engines: ['yahoojp', 'sogou'] }, base: {}, user: {}, revision: 3, writable: true }),
+    subscribe: () => () => {},
+    mutate: (ops, revision) => { controller.calls.push({ ops, revision }); return Promise.resolve({ revision: 4 }) },
+  }
+  const wrapper = bundle.mount(Component, { view: 'page', controller, t: translate })
+  assert.equal(typeof wrapper.tree.type, 'function', 'the bundle entry delegates to the shared picker')
+  const holder = bundle.mount(wrapper.tree.type, wrapper.tree.props)
+  const boxes = collect(holder.tree, (node) => node.type === primitives.Checkbox)
+  assert.equal(boxes.length, 8)
+  assert.deepEqual(boxes.filter((node) => node.props.checked).map((node) => node.props.label).sort(), ['Sogou', 'Yahoo! Japan'])
+
+  boxes.find((node) => node.props.label === 'Sogou').props.onChange(false)
+  button(holder.tree, bundle, 'Save').props.onClick()
+  assert.deepEqual(controller.calls, [{ ops: [{ op: 'set', path: ['engines'], value: ['yahoojp'] }], revision: 3 }])
 })
 
 // --- rendering -------------------------------------------------------------

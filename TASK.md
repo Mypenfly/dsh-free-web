@@ -1,6 +1,4 @@
-# TASK
-
-next: u010 — 收尾：重启桌面应用后目视确认 Plugins → free-web 的勾选页（`dsh.client` 只在启动时组图），核对日志无 `ClientPackageCompositionError`，然后交付说明
+next: u011 — 交付确认：重载桌面应用后插件页直接出现 Search engines 卡片；卡住就按 tasks/done/u010.md 的 carry 走
 goal: 让 DSH 内置 `web_search` / `web_fetch` 走免费的本地实现在不改系统提示词、不新增工具的前提下接管（走 `ctx.web` 官方 provider seam），并以可安装插件形式交付
 acceptance:
   - `web_search` / `web_fetch` 工具名、schema、模型可见面完全不变；系统提示词字符数不变；工具数量不变
@@ -30,6 +28,7 @@ done:
   - u007 引擎池 env 覆盖（`DSH_FREE_WEB_ENGINES`，优先级/回落/warn）+ 9 个测试 + 文档；工具面 2591/24 未变
   - u008 干净 profile 从零装/卸演练（dump-config 前后对比 + 活挂载两行日志）；修正 MOUNT/README 的安装步骤
   - u009 引擎勾选客户端半边（`Config` volatile + `src/client.js` + `dsh.client`）；75 测试、活体 set/reset 两条写回路径、工具面 2591/24 未变
+  - u010 GUI 入口不可见排查：宿主组图与客户端注册都正常，入口是行标题的 Configure 按钮（视觉上只有 ›）；新增 `plugins.bundle.config` 内联卡片 + README 收敛；76 测试、真浏览器（Firefox BiDi + 复制 desktop profile）点通保存写回
 pointers:
   - seam: `@deepseek-ai/dsh-web` → `ctx.web.registerSearchProvider/registerFetchProvider`
   - 传输: `src/util/transport.mjs`（`request` 单跳）+ `src/util/proxy.mjs`（env 代理/no_proxy）+ `src/util/address.mjs`；`getText` 逐跳跟随
@@ -38,11 +37,12 @@ pointers:
   - 活网验证: `node scripts/smoke.mjs`、`node scripts/probe-live-tool.mjs web_search "…"`、`node scripts/measure-wire.mjs <label> --with-plugin`
   - 宿主热载日志: `~/.dsh/logs/desktop-next.log`（改完 src 会重新注册 `pluginId: include:free-web`）
 
-## u010 计划（待重启验证）
-- 已交付：`src/client.js` 注册 `plugins.row.config`（key `dsh-free-web#free-web`），host 侧 `Config.engines` 为 volatile；
-  活体证明 `settings.mutate` → profile `cordis.patch.yml` → provider 下一次搜索即用新池，Restore defaults 整行删掉
-- 剩一步（需要用户重启一次桌面应用，`dsh.client`/`exports` 只在启动时组图）：
-  - Plugins → dsh-free-web → free-web 页出现 8 个复选框 + Save / Restore defaults
-  - 勾掉一个引擎 → Save → `~/.dsh/profiles/desktop/cordis.patch.yml` 出现 `- id: free-web config.engines`
-  - 日志 `~/.dsh/logs/desktop-next.log` 无 `ClientPackageCompositionError`（有则说明客户端包拼坏了，先看日志再决定回滚）
-- 如果重启后页面不出现：先查 asar 侧 `client-modules` 的组图日志/`dsh.client.platform`，再查槽 key 是否与 bundle patch 的 row id 一致
+## u011 计划（交付确认）
+- 已修复 u010：插件页现在**直接**在描述下方显示 `Search engines` 卡片（`plugins.bundle.config`，
+  键 `dsh-free-web`），行页的 Configure（`plugins.row.config`）保留；README 收到 55 行，描述不再把卡片挤出首屏
+- 用户侧只差重载一次桌面窗口（`dsh.client` 在 Host 启动时组图；`closeToTray` 下关窗口≠重启 Host）：
+  - Plugins → Free web (keyless) → 描述下方出现 8 个复选框 + Save / Restore defaults
+  - 取消勾选一个引擎 → Save → `~/.dsh/profiles/desktop/cordis.patch.yml` 出现 `- id: free-web / config.engines`
+  - Restore defaults 把那一行删掉（不是写回默认值）
+- 若仍不出现：查 `~/.dsh/logs/desktop-next*.jsonl` 有无 `ClientPackageCompositionError`；对照
+  `.dsh-home/profiles/desktopprobe`（desktop profile 的副本，已用真浏览器点通）复核
