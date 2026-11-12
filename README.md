@@ -55,8 +55,8 @@ an install is a dependency plus a selection — the patch rows come with it:
 
 ```bash
 dsh plugin --profile desktop add link:/home/mypenfly/projects/dsh-plugins/free-web
-# then add "dsh-free-web" to dsh.profile.bundles in the profile's package.json,
-# or install the directory from Plugins → Add plugin and press Enable now
+# that writes both halves: the link: dependency and the `dsh.profile.bundles` entry
+# (or install the directory from Plugins → Add plugin and press Enable now)
 ```
 
 It then appears in **Plugins** with its own title, description, and icon, and its switch is

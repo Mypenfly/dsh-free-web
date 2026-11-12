@@ -18,13 +18,14 @@ local checkout, `link:` keeps the profile on your working copy:
 dsh plugin --profile desktop add link:/home/mypenfly/projects/dsh-plugins/free-web
 ```
 
-then list it in `dsh.profile.bundles` in `~/.dsh/profiles/desktop/package.json`:
+The command does both halves — it adds the `link:` dependency *and* appends `dsh-free-web`
+to `dsh.profile.bundles`, which is what makes the bundle patch apply:
 
 ```json
 {
   "dsh": {
     "profile": {
-      "bundles": ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-web-app", "dsh-free-web"]
+      "bundles": ["@deepseek-ai/dsh-base", "@deepseek-ai/dsh-headless", "dsh-free-web"]
     }
   },
   "dependencies": {
@@ -32,6 +33,11 @@ then list it in `dsh.profile.bundles` in `~/.dsh/profiles/desktop/package.json`:
   }
 }
 ```
+
+Verified from an empty profile (`DSH_HOME=$PWD/.dsh-home`, profile `fwclean`, 2026-11-11):
+after `dsh plugin --profile fwclean add link:$PWD`, `dsh --profile fwclean --dump-config`
+prints `# == dsh-free-web` with `- id: free-web / name: dsh-free-web`, and the `web` row it
+patches reads `searchProvider: free-search`, `fetchProvider: free-fetch`.
 
 The same two facts come from the GUI: **Plugins → Add plugin** with the directory path,
 then **Enable now**. The bundle shows up in Installed plugins with its title, description,
@@ -147,6 +153,26 @@ Keep a dated copy before editing either one:
 
 ```bash
 cp ~/.dsh/profiles/desktop/cordis.patch.yml ~/.dsh/profiles/desktop/cordis.patch.yml.bak-free-web-$(date +%Y%m%d-%H%M%S)
+```
+
+The bundle path was drilled on an isolated profile, with the composition checked before and
+after (dumps kept under `.dsh/refs/`):
+
+```bash
+# installed
+dsh --profile fwclean --dump-config | grep -E '== dsh-free-web|searchProvider'
+#   # == dsh-free-web
+#   searchProvider: free-search
+#   fetchProvider: free-fetch
+
+# rollback = drop the bundle selection, keep the package installed (same as the Plugins switch)
+node -e "const fs=require('fs'), f='$HOME/.dsh/profiles/fwclean/package.json', p=JSON.parse(fs.readFileSync(f));
+  p.dsh.profile.bundles = p.dsh.profile.bundles.filter((id) => id !== 'dsh-free-web');
+  fs.writeFileSync(f, JSON.stringify(p, null, 2) + '\n')"
+dsh --profile fwclean --dump-config | grep -E 'free-web|searchProvider'
+#   searchProvider: deepseek-official
+#   fetchProvider: http
+#   (no free-web row at all)
 ```
 
 ## 7. Unmount without losing the engines

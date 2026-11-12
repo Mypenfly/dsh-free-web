@@ -17,3 +17,5 @@
 - 当判断「一次改动有没有动模型可见面」→ 改完再跑 `scripts/measure-wire.mjs`，比 `systemChars`/`toolCount` 与 baseline 完全相等，别只靠读代码。
 - 当要临时缩小/替换免费搜索的引擎池 → `DSH_FREE_WEB_ENGINES=sogou,wikipedia`（逗号/空白分隔、大小写不敏感、mount 时读；未知 id 只 warn，全不可用回落 row config），别改 bundle patch（bundle 更新会覆盖）。
 - 当给插件加 env 覆盖 → 变量名全大写精确匹配（Linux env 区分大小写），并让「解析后为空」= 不覆盖，别把空值当成「关掉功能」。
+- 当要在干净 profile 里验收 bundle 交付 → `dsh --profile X --from-default-profile headless --dump-config` 建 profile，`dsh plugin --profile X add link:$PWD`（自动写依赖 + `dsh.profile.bundles` + pnpm link），dump 里认 `# == <包名>` 与 `web` 行的 provider id；回滚=从 bundles 删该条目。
+- 当要判断一次「装没装上」→ 看 dump-config 的 `# == <pkg>` 段与 `dsh.profile.bundles`，别看 pnpm 输出；profile 的 overlay 也能按 id 覆盖 bundle 插入的行。
