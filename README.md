@@ -15,6 +15,15 @@ system-prompt chars, 24 tools, both arms).
 No API key, no account, no billing endpoint: every request goes to a public result page or the
 target site itself.
 
+## Install
+
+```bash
+git clone https://github.com/Mypenfly/dsh-free-web.git && cd dsh-free-web
+dsh plugin --profile desktop add link:"$PWD"   # dependency + bundle selection, in one step
+```
+
+Verification, the manual (no-bundle) mount, and rollback: [docs/MOUNT.md](docs/MOUNT.md).
+
 ## The engine pool is yours
 
 Pick engines in the card below, or on the row's own page (**Free web (keyless) ›**) — same

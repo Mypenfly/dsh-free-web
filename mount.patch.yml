@@ -11,7 +11,7 @@
 
 - insert:
     - id: free-web
-      name: /home/mypenfly/projects/dsh-plugins/free-web/src/index.mjs
+      name: /abs/path/to/dsh-free-web/src/index.mjs
       config:
         engines: [duckduckgo, yahoojp, so360, sogou, wikipedia]
         # provenance: true      # prefix results with "Engines: …"

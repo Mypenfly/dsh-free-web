@@ -49,5 +49,23 @@
   "license": "MIT",
   "dependencies": {
     "@deepseek-ai/schemastery": "~3.19.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mypenfly/dsh-free-web.git"
+  },
+  "homepage": "https://github.com/Mypenfly/dsh-free-web#readme",
+  "bugs": {
+    "url": "https://github.com/Mypenfly/dsh-free-web/issues"
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "plugin",
+    "bundle",
+    "web-search",
+    "web-fetch",
+    "free",
+    "keyless"
+  ]
 }

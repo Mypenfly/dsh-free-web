@@ -15,7 +15,7 @@ The profile holds the package as a dependency and selects it as a bundle layer. 
 local checkout, `link:` keeps the profile on your working copy:
 
 ```bash
-dsh plugin --profile desktop add link:/home/mypenfly/projects/dsh-plugins/free-web
+dsh plugin --profile desktop add link:"$PWD"   # run from your checkout
 ```
 
 The command does both halves — it adds the `link:` dependency *and* appends `dsh-free-web`
@@ -29,7 +29,7 @@ to `dsh.profile.bundles`, which is what makes the bundle patch apply:
     }
   },
   "dependencies": {
-    "dsh-free-web": "link:/home/mypenfly/projects/dsh-plugins/free-web"
+    "dsh-free-web": "link:/path/to/dsh-free-web"
   }
 }
 ```
@@ -71,7 +71,7 @@ plugins as file paths, an agent preset — point the row at the module and re-po
 ```yaml
 - insert:
     - id: free-web
-      name: /home/mypenfly/projects/dsh-plugins/free-web/src/index.mjs
+      name: /abs/path/to/dsh-free-web/src/index.mjs
       config:
         engines: [duckduckgo, yahoojp, so360, sogou, wikipedia]
 - id: web
