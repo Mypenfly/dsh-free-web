@@ -23,10 +23,12 @@
  *         fetchProvider: free-fetch
  *
  * Equivalent, without editing the patch: `DSH_WEB_SEARCH_PROVIDER=free-search` and
- * `DSH_WEB_FETCH_PROVIDER=free-fetch` in the launching environment.
+ * `DSH_WEB_FETCH_PROVIDER=free-fetch` in the launching environment. The engine pool
+ * has the same kind of override, `DSH_FREE_WEB_ENGINES=sogou,wikipedia`, which wins
+ * over the row's `config.engines`.
  */
 
-import { resolveEngines } from './search/engines/index.mjs'
+import { ENGINE_ENV, enginesFromEnv, resolveEngines } from './search/engines/index.mjs'
 import { FreeSearchProvider } from './search/provider.mjs'
 import { FreeFetchProvider } from './fetch/provider.mjs'
 
@@ -76,7 +78,22 @@ export function apply(ctx, config = {}) {
   }
 
   if (config.search !== false) {
-    const engines = resolveEngines(config.engines, warn)
+    // The environment wins over the row config: it is the escape hatch for a pool
+    // that went bad from this egress IP, and it survives bundle updates. A variable
+    // that resolves to nothing usable falls back to the config, so a typo costs a
+    // warning rather than the tool.
+    const override = enginesFromEnv()
+    let engines = resolveEngines(override ?? config.engines, warn)
+    if (override !== undefined) {
+      if (engines.length > 0) {
+        const line = `free-web: engine pool overridden by ${ENGINE_ENV}=${override.join(',')}`
+        log(line)
+        if (config.verbose === true) process.stderr.write(`${line}\n`)
+      } else {
+        warn(`free-web: ${ENGINE_ENV}="${override.join(',')}" has no usable engine; falling back to the configured pool`)
+        engines = resolveEngines(config.engines, warn)
+      }
+    }
     if (engines.length === 0) {
       warn('free-web: no usable search engine configured; the search provider stays unmounted')
     } else {

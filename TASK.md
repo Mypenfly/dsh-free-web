@@ -1,6 +1,6 @@
 # TASK
 
-next: u007 — 引擎池不改 YAML 也能配：`DSH_FREE_WEB_ENGINES`（逗号/空格分隔，大小写不敏感）覆盖 row config，未知 id 只 warn；补测试与文档，别动工具/schema/提示词
+next: u008 — 交付验收演练：在干净 profile 里从零装 bundle（`dsh plugin --profile X add link:…` + `dsh.profile.bundles`），dump-config 证明 patch 生效，再演练回滚（去掉 bundles 条目 → seam 回到 official），全程不碰 desktop profile
 goal: 让 DSH 内置 `web_search` / `web_fetch` 走免费的本地实现在不改系统提示词、不新增工具的前提下接管（走 `ctx.web` 官方 provider seam），并以可安装插件形式交付
 acceptance:
   - `web_search` / `web_fetch` 工具名、schema、模型可见面完全不变；系统提示词字符数不变；工具数量不变
@@ -11,6 +11,7 @@ acceptance:
   - 插件化（u005）：bundle patch + `link:` 依赖 + bundles 选中；GUI 列表可见、可关闭
   - 自建传输（u006）：`grep -r "await fetch(\|=\s*fetch(" src` 为空；代理取 env（`http_proxy`/`https_proxy`/`all_proxy` + `no_proxy`）；直连 DNS 预检 + pin；gzip/deflate/br 解码；重定向逐跳校验
   - 引擎池可配（u007）：`DSH_FREE_WEB_ENGINES` 优先于 row config；未知 id 只 warn 不崩；不改代码即可缩池
+  - 交付可复现（u008）：干净 profile 从零装/卸 bundle 均有读数为证；desktop profile 不动
 constraints:
   - 不做系统提示词注入（对比 dsh-free-search 的做法）
   - 不新增工具、不改 tool-web 的 schema/描述
@@ -25,6 +26,7 @@ done:
   - u004 挂载桌面 profile + 活会话验证 + DDG 引擎
   - u005 打包成 bundle（manifest/locale/icon/patch）+ 装进 desktop profile + 移除手写路径行
   - u006 自建传输（node core + env 代理 CONNECT/absolute-form + DNS 预检/pin + gzip/deflate/br + 单跳）；48 离线测试、活网 smoke、宿主内核探针全绿
+  - u007 引擎池 env 覆盖（`DSH_FREE_WEB_ENGINES`，优先级/回落/warn）+ 9 个测试 + 文档；工具面 2591/24 未变
 pointers:
   - seam: `@deepseek-ai/dsh-web` → `ctx.web.registerSearchProvider/registerFetchProvider`
   - 传输: `src/util/transport.mjs`（`request` 单跳）+ `src/util/proxy.mjs`（env 代理/no_proxy）+ `src/util/address.mjs`；`getText` 逐跳跟随
@@ -33,11 +35,10 @@ pointers:
   - 活网验证: `node scripts/smoke.mjs`、`node scripts/probe-live-tool.mjs web_search "…"`、`node scripts/measure-wire.mjs <label> --with-plugin`
   - 宿主热载日志: `~/.dsh/logs/desktop-next.log`（改完 src 会重新注册 `pluginId: include:free-web`）
 
-## u007 计划（未开工）
-- `src/search/engines/index.mjs`：加 `parseEngineList(value)`（逗号/空白分隔、trim、小写化）与 `enginesFromEnv(env)`；`apply()` 里 env 命中则覆盖 `config.engines`
-- 优先级：`DSH_FREE_WEB_ENGINES` > row config（env 是运维逃生口，跟 `DSH_WEB_SEARCH_PROVIDER` 一致）；值为空/全空白 → 回落到 row config
-- 未知 id：沿用 `resolveEngines(ids, warn)` 的 warn 行为，不 throw
-- 测试：`test/config.test.mjs`（解析、去重、未知 id、空值回落、env 优先）；不改既有断言
-- 文档：`docs/MOUNT.md` §3 环境变量段加一行；README Configuration 表加一行
-- 验证：`DSH_FREE_WEB_ENGINES=sogou,wikipedia node scripts/smoke.mjs` 的 `Engines:` 行只含这两家；`measure-wire` 仍 2591/24/false
-- 之后（u008，可选）：Plugins 页里勾选引擎（需客户端半边注册 `plugins.row.config` 槽）
+## u008 计划（未开工）
+- 新建隔离 profile（`DSH_HOME=$PWD/.dsh-home`，`dsh --profile fwclean --from-default-profile headless --dump-config` 先落盘），**不碰 desktop**（Electron 独占）
+- 装：`dsh plugin --profile fwclean add link:$PWD`（或按 MOUNT.md §1 手工加 `dependencies` + `dsh.profile.bundles`），`pnpm install` 建符号链接
+- 证明：`dsh --profile fwclean --dump-config` 里出现 `# == dsh-free-web` 且 `web.config.searchProvider: free-search`/`fetchProvider: free-fetch`
+- 回滚：从 `dsh.profile.bundles` 去掉 `dsh-free-web`（模拟 Plugins 页关闭），再 dump-config 证明 `web` 行回到 `deepseek-official`/`http` 且没有 free-web 行；记录前后两份 dump 到 `.dsh/refs/`
+- 文档：把演练命令补进 `docs/MOUNT.md` §6（回滚）或独立小节；README 的 Install 段若与实际命令不符则修正
+- 之后（u009，可选，需用户确认）：Plugins 页里勾选引擎 —— 纯 host 插件拿不到 `plugins.row.config` 槽，必须加客户端半边；成本远高于 env 覆盖

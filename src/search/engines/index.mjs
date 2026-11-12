@@ -30,6 +30,45 @@ export const ENGINES = new Map(
 export const DEFAULT_ENGINES = ['yahoojp', 'so360', 'sogou', 'wikipedia', 'duckduckgo']
 
 /**
+ * Environment variable that overrides the configured pool.
+ *
+ * Shrinking the pool is an operational decision (an engine starts serving CAPTCHAs
+ * from this egress IP, a CI run needs a single deterministic engine), and that
+ * should not require editing a YAML file that a bundle update will overwrite.
+ */
+export const ENGINE_ENV = 'DSH_FREE_WEB_ENGINES'
+
+/**
+ * Parse an engine list: comma or whitespace separated, case-insensitive, deduped.
+ *
+ * @param {unknown} value raw variable or config value
+ * @returns {string[]} engine ids, in the order given
+ */
+export function parseEngineList(value) {
+  if (typeof value !== 'string' || value.trim() === '') return []
+  const seen = new Set()
+  const ids = []
+  for (const token of value.split(/[,\s]+/)) {
+    const id = token.trim().toLowerCase()
+    if (id === '' || seen.has(id)) continue
+    seen.add(id)
+    ids.push(id)
+  }
+  return ids
+}
+
+/**
+ * Engine ids from the environment, or `undefined` when the variable says nothing.
+ *
+ * @param {Record<string, string | undefined>} [env] environment to read
+ * @returns {string[] | undefined} override list, or `undefined` to keep the config
+ */
+export function enginesFromEnv(env = process.env) {
+  const ids = parseEngineList(env[ENGINE_ENV])
+  return ids.length === 0 ? undefined : ids
+}
+
+/**
  * Resolve a configured engine list, reporting unknown ids instead of failing the
  * whole plugin: a typo should cost one engine, not the search tool.
  *

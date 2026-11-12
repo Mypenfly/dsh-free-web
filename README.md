@@ -124,6 +124,7 @@ web_fetch { url: "https://doc.rust-lang.org/book/ch04-00-understanding-ownership
 | key | default | meaning |
 |---|---|---|
 | `engines` | `[yahoojp, so360, sogou, wikipedia, duckduckgo]` | engine ids, in preference order (order breaks ties in fusion) |
+| `DSH_FREE_WEB_ENGINES` (env) | unset | comma/space separated override of `engines`; wins over the row config, unknown ids only warn |
 | `searchProvider` | `free-search` | id the search provider registers under |
 | `fetchProvider` | `free-fetch` | id the fetch provider registers under |
 | `engineTimeoutMs` | `8000` | per-engine budget inside one search |

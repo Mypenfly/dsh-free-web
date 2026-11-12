@@ -196,3 +196,32 @@ To see which path a request took, run the providers directly — a proxied run f
 node scripts/smoke.mjs                     # live search + fetch, current environment
 node --test "test/*.test.mjs"              # proxy rules, decoding, caps, cancellation, PIN
 ```
+
+## 9. Changing the engine pool without editing a patch
+
+`DSH_FREE_WEB_ENGINES` overrides the row's `config.engines`, which makes it the right lever
+when an engine starts answering CAPTCHAs from this egress IP, or when a scripted run needs a
+deterministic pool:
+
+```bash
+# comma or whitespace separated, case-insensitive, duplicates collapse
+DSH_FREE_WEB_ENGINES=sogou,wikipedia dsh web
+```
+
+It is read at mount time, so the mount line in the log already shows the effective pool:
+
+```
+free-web: engine pool overridden by DSH_FREE_WEB_ENGINES=sogou,wikipedia
+free-web: search provider "free-search" registered with engines [sogou, wikipedia]
+```
+
+Rules:
+
+- unknown ids are warnings, not failures — the rest of the pool still mounts;
+- a value that resolves to nothing usable falls back to the row config, so a typo costs a
+  warning rather than the search tool;
+- an empty or whitespace-only value is the same as not setting it.
+
+The variable is a host-side escape hatch: it lives in the process environment, so it also
+applies when the plugin runs inside the desktop app (start it from a shell with the variable
+exported).

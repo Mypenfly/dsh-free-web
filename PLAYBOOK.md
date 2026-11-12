@@ -15,3 +15,5 @@
 - 当解析 `no_proxy` 的 CIDR → 先判 `a.b.c.d/n` 再去 URL path，否则 `/16` 会被当路径吃掉；`socks*://` 要么实现要么明确退回直连，别假装代理。
 - 当要在宿主内核里证明内置工具真的调到自家 provider（不花 API 费）→ `scripts/probe-live-tool.mjs`：mock Messages endpoint 流一段 `tool_use`，再从后续请求的 `tool_result` 取结果。
 - 当判断「一次改动有没有动模型可见面」→ 改完再跑 `scripts/measure-wire.mjs`，比 `systemChars`/`toolCount` 与 baseline 完全相等，别只靠读代码。
+- 当要临时缩小/替换免费搜索的引擎池 → `DSH_FREE_WEB_ENGINES=sogou,wikipedia`（逗号/空白分隔、大小写不敏感、mount 时读；未知 id 只 warn，全不可用回落 row config），别改 bundle patch（bundle 更新会覆盖）。
+- 当给插件加 env 覆盖 → 变量名全大写精确匹配（Linux env 区分大小写），并让「解析后为空」= 不覆盖，别把空值当成「关掉功能」。
